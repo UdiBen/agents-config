@@ -1,0 +1,3 @@
+- [Render Mermaid inline in MD](feedback_render_mermaid_in_md.md) — when using Mermaid for a knowledge-MD diagram, render to PNG via `/opt/homebrew/bin/mmdc` and embed the image; keep source in `<details>`
+- [No session link in PRs](feedback_no_session_link_in_pr.md) — never put the `claude.ai/code/session_…` URL in a PR description; keep the generic Claude Code attribution only
+- [AWS account IDs](reference_aws_account_ids.md) — prod (cloud-prod) and staging (cloud-staging) accounts; ids in `~/.agents/local.env`; prod is read-only
