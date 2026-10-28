@@ -2,8 +2,12 @@
 
 A blind, multi-agent code review for your own branch or a PR. The orchestrating session
 never reads the diff; fresh agents do, a merge agent dedups, a verifier re-checks every
-finding against the code, and the result goes to one rolling report page per branch.
-Teammates tick findings resolved on the page, and ticked findings fold away for everyone.
+finding against the code, and each review is saved as a round in the branch's history
+under `.git/blind-review/<branch>/`. The result comes back in chat and as Markdown.
+
+Delivering it elsewhere is optional and lives in separate skills:
+- `review-to-artifact`: one shared page per branch, where teammates tick findings resolved
+- `review-to-difftool`: inline comments on a difftool review
 
 ## Install
 
@@ -12,8 +16,7 @@ Copy this directory to `~/.claude/skills/blind-review/` (personal) or to a repo'
 `treeverse/dev` is the intended long-term home.
 
 Needs: `gh` authenticated, `jq`, `python3`, and a Claude Code session that can spawn
-subagents. Without subagents it degrades to a single-context review and says so. Without
-the Artifact tool it writes the report as Markdown under `.git/blind-review/` instead.
+subagents. Without subagents it degrades to a single-context review and says so.
 
 If you have a personal `self-review` skill installed, remove it: both answer to
 "self-review".
@@ -23,9 +26,9 @@ If you have a personal `self-review` skill installed, remove it: both answer to
 - On your branch, before pushing: `/blind-review`
 - Stacked on another branch: `/blind-review --base feature/1234-parent`
 - A PR: `/blind-review 4271` or `/blind-review https://github.com/treeverse/lakeFS-Enterprise/pull/4271`
-- Again after fixing: `/blind-review` — adds r2 to the same page, with a fixed / not fixed /
-  waived account of every r1 finding. A local review and a later PR review of the same
-  branch share one page.
+- Again after fixing: `/blind-review` — saves r2, with a fixed / not fixed / waived account
+  of every r1 finding. A local review and a later PR review of the same branch share one
+  history.
 
 ## What it costs
 

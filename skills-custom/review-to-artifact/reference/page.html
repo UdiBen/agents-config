@@ -143,11 +143,16 @@ footer { font-size: .85rem; color: var(--muted); display: grid; gap: 4px; }
   const readLocal = () => { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}"); } catch { return {}; } };
   const writeLocal = (m) => { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(m)); } catch {} };
 
+  // A finding ticked before this round yet reported again is still present.
+  function reopened(f, it) {
+    const r = resolved[f.id];
+    const prev = iters[iters.indexOf(it) - 1];
+    return !!(r && r.resolved && r.at && r.at < it.date && prev && prev.findings.some((x) => x.id === f.id));
+  }
+
   function isResolved(f, it) {
     const r = resolved[f.id];
-    if (!r || !r.resolved) return false;
-    if (f.reopened && r.at && r.at < it.date) return false;
-    return true;
+    return !!(r && r.resolved) && !reopened(f, it);
   }
 
   function note(text) {
@@ -185,7 +190,7 @@ footer { font-size: .85rem; color: var(--muted); display: grid; gap: 4px; }
       el("span", { class: "chip", text: f.kind }),
       el("span", { class: "chip tag-" + f.tag.split(" ")[0], text: f.tag }),
       el("span", { class: "chip", text: f.verdict.toLowerCase() }),
-      f.reopened && !done ? el("span", { class: "chip reopened", text: "ticked resolved, still present" }) : null,
+      reopened(f, it) ? el("span", { class: "chip reopened", text: "ticked resolved, still present" }) : null,
       f.from_question ? el("span", { class: "chip", text: "settled question" }) : null,
       el("span", { class: "anchor", text: anchor(f) }),
       el("span", { class: "anchor", text: f.id }));

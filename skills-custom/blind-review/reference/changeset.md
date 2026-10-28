@@ -36,7 +36,7 @@ empty base.
 
 Every later shell step starts with `source <run>/env.sh`. Shell variables do not survive
 between tool calls; `env.sh` holds `RUN`, `AGENT_ROOT`, `SNAP`, `CLAIMS`, `SLUG`,
-`HEAD_SHA`, `BASE`, `BASE_REF`, `TREE`, `CHANGED`, `INDEX_DIR` and `PREV_URL`.
+`HEAD_SHA`, `BASE`, `BASE_REF`, `TREE`, `CHANGED`, `HIST_DIR` and `PREV_N`.
 
 ## The shape — the only thing you look at
 
@@ -77,7 +77,6 @@ the lead target's report (`report.md`).
 
 ## Re-review
 
-`PREV_URL` in `env.sh` is the previous report for this branch. Branch mode and PR mode
-use the same branch-named slug, so a local review and a later PR review form one chain.
-When `PREV_URL` is empty, check the Artifact list for a page titled `<SLUG> review` before
-deciding this is the first iteration.
+`PREV_N` in `env.sh` is the latest saved round for this branch, `0` when there is none;
+`HIST_DIR` holds the rounds. Branch mode and PR mode use the same branch-named history, so
+a local review and a later PR review form one chain.

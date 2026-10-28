@@ -21,10 +21,14 @@ sidebar has a copy-prompt button) — this command just automates it and runs th
   tells you exactly which files are in the diff.
 
 ## 2. Produce the findings
-- Pick the reviewer from `$ARGUMENTS`: if it ends with `deep` or `blind`, invoke the
-  `blind-review` skill and take its findings from the run's `verified.json`; otherwise invoke
-  the `code-review` skill (the default, faster, effort-tiered). Either way the target is the
-  same PR/branch/range.
+- Pick the reviewer from `$ARGUMENTS`: if it ends with `deep` or `blind`, use the `blind-review`
+  skill; otherwise invoke the `code-review` skill (the default, faster, effort-tiered). Either
+  way the target is the same PR/branch/range.
+- With `blind-review`, the findings are its latest saved round,
+  `.git/blind-review/<branch>/r<N>.json` in the repo's git common dir. Reuse that round if its
+  `head` is the target's current head; otherwise run `blind-review` first. Post its `findings`
+  (the `tag`, `severity` and `verdict` go in the comment body) and its open `questions` as notes.
+  They are already verified, so skip the verification step below for them.
 - Verify every candidate against the real source before keeping it — refute anything you
   can't confirm from the code.
 - Findings that depend on code OUTSIDE the diff (error mappings, janitors, callers) are valid
@@ -36,7 +40,8 @@ sidebar has a copy-prompt button) — this command just automates it and runs th
   - `filePath` must match `review get` exactly; anchor by `match` (distinctive changed-line
     text) — never hand-count line numbers.
   - `type`: `issue` (bug/blocking) · `suggestion` (improvement) · `note` (nit/question).
-  - `author`: `"code-review (claude)"` so I can filter agent findings in the browser.
+  - `author`: `"code-review (claude)"`, or `"blind-review (claude)"` for blind-review findings,
+    so I can filter agent findings in the browser.
   - Write the batch to a file to avoid shell escaping.
 - Validate, then apply:
   - `difftool review comment apply --review <ref> --input <file> --dry-run`  (must report 0 problems)

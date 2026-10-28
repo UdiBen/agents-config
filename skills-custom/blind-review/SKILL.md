@@ -6,26 +6,27 @@ description: >-
   "sanity-check this before the PR", "review PR #N", or as the QA gate before opening or
   merging a PR. The orchestrator never reads the diff: it snapshots it, dispatches fresh
   agents (bugs, removed behaviour, tests, risk, conventions, lean, intent/cross-repo),
-  merges, verifies with a recall-biased three-state verdict, and publishes one rolling
-  report page per branch where the team ticks findings resolved. Read-only toward the
-  reviewed repo: never commits, pushes, posts to GitHub or edits tracked files.
+  merges, verifies with a recall-biased three-state verdict, and saves the round to the
+  branch's history so a re-review accounts for every earlier finding. Results go to chat
+  and Markdown; review-to-artifact and review-to-difftool deliver them elsewhere.
+  Read-only toward the reviewed repo: never commits, pushes, posts to GitHub or edits
+  tracked files.
 ---
 
 # blind-review
 
 Reviewing a changeset — **yours** (the default) or **someone else's PR** — with agents that
 have never seen the code written. One pipeline, five steps: **snapshot → dispatch →
-merge → verify → report**. The reference files and scripts carry the details; this file
-is the contract.
+merge → verify → save**. The reference files and scripts carry the details; this file
+is the contract. Delivering the result anywhere other than chat is a separate skill's job.
 
 | File | What it holds |
 |---|---|
 | `scripts/snapshot.sh` | Resolves the target and writes the run directory: snapshot, claims, `env.sh` |
-| `scripts/build_report.py` | Reads the previous report, and builds the next iteration's page from `verified.json` |
+| `scripts/save_round.py` | Reads the previous round, and saves the next one as `r<N>.json` and `r<N>.md` |
 | `reference/changeset.md` | Targets, the run directory, stacked bases, batches |
 | `reference/prompts.md` | The seven agent rows, the dispatch template, the merge and verify prompts |
-| `reference/report.md` | Tags, verdict, publishing the rolling page, the Markdown fallback |
-| `reference/report.html` | The page template the build script fills |
+| `reference/report.md` | Round history, tags, verdict, the round record, delivery |
 | `reference/doctrine-lakefs.md` | Treeverse/lakeFS doctrine handed to agents (Go, layering, cross-repo, Enterprise) |
 
 ## Why the orchestrator is blind
@@ -54,8 +55,8 @@ nothing.
   you are not equipped to overrule an agent that did. Dispute in writing (`Disputed:`).
 - **Read-only toward the reviewed repo.** No commit, push, checkout, stash, add, reset; no
   GitHub comments, approvals or labels; no edits to tracked files. Allowed: `git fetch`;
-  the run directory, including a detached PR worktree inside it; and the report index
-  under the repository's git directory (`.git/blind-review/`).
+  the run directory, including a detached PR worktree inside it; and the round history
+  under the repository's git directory (`.git/blind-review/<branch>/`).
 
 ## Step 1 — Snapshot
 
@@ -65,7 +66,7 @@ nothing.
 
 Details in `reference/changeset.md`. The script prints the run directory and the shape:
 changed lines, changed paths, test paths, security-sensitive paths, issues found, and the
-previous report's URL. Every later shell step starts with `source <run>/env.sh`.
+previous round, if any. Every later shell step starts with `source <run>/env.sh`.
 
 If changed lines is 0, stop and say so. State the target, base, run directory and shape to
 the user before dispatching. If no issue was found, ask the user what the change is for
@@ -86,7 +87,7 @@ Seven agents, each owning one question. Full rows and the template are in
 | 6 | **lean** | Code that should not exist or should be smaller; mechanisms that already exist; dependency freshness | `sonnet` |
 | 7 | **intent** | What should also have changed; the issue, no more and no less; cross-repo contracts and deploy order | `sonnet` |
 | — | **merge** | Dedup into one list; nothing dropped | `sonnet` |
-| — | **verify** | Three-state verdict on every finding; prior-iteration accounting | session |
+| — | **verify** | Three-state verdict on every finding; prior-round accounting | session |
 
 **Models.** "session" means omit `model`, so the agent runs on this session's model.
 `sonnet` means pass `model: "sonnet"`. The agents where a miss ships a bug run on the
@@ -121,25 +122,25 @@ under the bar demoted to nits; questions kept as questions; contradictions kept 
 The merge decides what is one problem. It does not decide what is true. A wrong finding
 that reaches a fixer gets applied.
 
-First find the previous iteration and its ticks, and get the next iteration number
-(`reference/report.md`, "Before the verifier"). Then one fresh agent re-checks every
+First load the previous round and get the next round number (`reference/report.md`,
+"Before the verifier"). Then one fresh agent re-checks every
 finding against the code with a **three-state verdict** (`CONFIRMED` / `PLAUSIBLE` /
 `REFUTED`) and three questions: is it real, did this diff introduce it, is it handled
 elsewhere. It is **recall-biased**: a realistic trigger is PLAUSIBLE, and REFUTED needs
 proof constructible from the code. Refuted entries are **kept with their reason**, never
 deleted. On a re-review it also accounts for every prior finding as fixed, not fixed or
-waived, and flags ticked findings that are still present. It also settles every
+waived, keeping the same id for a finding that is still present. It also settles every
 question it can from the code, turning each into a finding or a refuted entry; only a
 question the code cannot answer stays open, saying what would answer it. It writes
 `verified.json`.
 Prompt in `reference/prompts.md`.
 
-## Step 5 — Report
+## Step 5 — Save
 
-Build the page and publish it to the branch's one rolling Artifact
-(`reference/report.md`). Then relay to the user: the verdict line, the findings in full,
-the open questions, the refuted entries with reasons, nit and pre-existing counts, and the
-link.
+Save the round to the branch's history with `save_round.py` (`reference/report.md`). It
+writes `r<N>.json`, the record delivery skills read, and `r<N>.md`. Then relay to the
+user: the verdict line, the findings in full, the open questions, the refuted entries with
+reasons, nit and pre-existing counts, and the path of `r<N>.md`.
 
 Then stop every agent you started (`TaskStop`) and confirm with `ListAgents`. Reports
 first, then stop: an agent whose report you only have inline takes the rest of it with it.
@@ -152,8 +153,11 @@ Offer, do not do:
 - **Fix** the findings — any agent may fix, including this conversation; fixing is not
   reviewing. Work "Fix together" entries as one change. `needs decision` and `disputed`
   entries stop and ask; `confirm first` entries are confirmed before they are fixed.
-- **Re-review** — run this skill again; it adds the next iteration to the same page, with
-  the prior-findings accounting.
+- **Re-review** — run this skill again; it saves the next round, with the prior-findings
+  accounting.
+- **Deliver** — `review-to-artifact` publishes the branch's rounds as one shared page where
+  the team ticks findings resolved; `review-to-difftool` posts them as inline comments.
+  Both read `r<N>.json` and are optional.
 - **PR mode:** post selected findings as PR comments — draft first, post only on an
   explicit yes.
 
@@ -177,7 +181,7 @@ again the moment the findings arrive and you start defending the code.
 
 Review the rows yourself in table order, one at a time, finishing each before the next.
 Then re-check every finding against the verifier's three questions, write
-`verified.json` yourself, and build the report with `--single-context`. The page and the
+`verified.json` yourself, and save the round with `--single-context`. The record and the
 relay then say plainly that the bias this skill exists to remove was not removed.
 
 ## Red flags — stop
@@ -187,5 +191,5 @@ relay then say plainly that the bias this skill exists to remove was not removed
 - You put "what this change is for" into any dispatch but intent's claims slot.
 - You dropped or re-rated an entry instead of disputing it.
 - You handed a fixer `merged.md` without running the verifier.
-- You published a new artifact when the branch already had one.
+- You saved a round over an earlier one, or started a re-review from round 1.
 - Every agent returned "No findings" on a diff over 200 lines.

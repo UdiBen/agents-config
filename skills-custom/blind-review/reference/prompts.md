@@ -304,9 +304,8 @@ code or the review. Do not feel pressure to confirm — or to reject.
 
 INPUT:  <run>/merged.md, the snapshot <SNAP>  (repo root: <AGENT_ROOT>,
         base commit: <BASE>)
-        <re-review only: the previous iteration's findings, <run>/prev.json;
-        the user's waived list: <ids or "none">; ids the team ticked as
-        resolved on the report page: <ids or "none">>
+        <re-review only: the previous round's findings, <run>/prev.json;
+        the user's waived list: <ids or "none">>
 
 For each entry under "## Findings", answer three questions from the code and
 give one verdict:
@@ -355,8 +354,7 @@ other finding gets `r<N>-<k>`, numbered from 1 in severity order.
 Re-review only. Walk every finding in prev.json and state its fate against the
 current code, not against a commit message: `fixed` (how), `not_fixed` (still
 fails because …), or `waived` (only if its id is on the user's waived list).
-A not_fixed finding also appears in "findings" under its old id. When the team
-ticked it as resolved, set `"reopened": true` on that entry.
+A not_fixed finding also appears in "findings" under its old id.
 
 OUTPUT: write <run>/verified.json, one JSON object, nothing else:
 {
@@ -367,8 +365,7 @@ OUTPUT: write <run>/verified.json, one JSON object, nothing else:
                   "title", "severity": "CRITICAL|HIGH|MEDIUM",
                   "verdict": "CONFIRMED|PLAUSIBLE", "verified": "<what you checked>",
                   "file", "line", "raised_by": ["<agent>", ...],
-                  "disputed": "<both positions, or omit>", "reopened": true|omit,
-                  "from_question": true|omit,
+                  "disputed": "<both positions, or omit>", "from_question": true|omit,
                   "fields": [["Evidence", "..."], ["Trigger", "..."], ["Fix", "..."]]}],
   "questions":  [{"title", "file", "line", "text", "needs", "raised_by": [...]}],
   "refuted":    [{"title", "file", "line", "reason", "raised_by": [...]}],
@@ -379,8 +376,8 @@ OUTPUT: write <run>/verified.json, one JSON object, nothing else:
 `fields` keeps the agent's block lines in order, label and text, exactly as
 written (Evidence, Trigger, Scale, Doctrine, Current, Simpler, Saves, Costs,
 Surface, Producer / consumer, Order, Fix, and the body as "Detail"). A finding
-that fails question 2 moves to pre_existing. Nothing is deleted. `prior` and
-the reopened flags are empty on a first review. Reply with only the path and
+that fails question 2 moves to pre_existing. Nothing is deleted. `prior` is
+empty on a first review. Reply with only the path and
 the count of confirmed, plausible, refuted, pre-existing and open questions, and
 how many questions you settled.
 ```

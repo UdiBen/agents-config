@@ -1,10 +1,11 @@
-# The report
+# Rounds and the round record
 
-One rolling Artifact page per branch. Each review adds an iteration to it, at the same
-link. Teammates tick findings resolved on the page; a ticked finding folds to its title
-for everyone. `scripts/build_report.py` builds the page from the verifier's
-`verified.json`, and also derives the tags and the verdict, so the orchestrator copies
-files and never judges a finding.
+Each review of a branch is a round. Rounds are kept in the branch's history directory,
+`HIST_DIR` in `env.sh`: `.git/blind-review/<branch>/` in the repository's shared git
+directory, so every worktree of the repository sees the same history and nothing appears
+in `git status`. A local review and a later PR review of the same branch share one
+history. `scripts/save_round.py` writes each round and derives its tags and verdict, so
+the orchestrator copies files and never judges a finding.
 
 ## Tags and verdict
 
@@ -21,60 +22,62 @@ Verdict: any CRITICAL → blocked; any HIGH → needs changes; MEDIUM only → s
 none → ship. Refuted, pre-existing and question entries carry no tag. Whoever fixes the
 findings does not act on them unless the user says so.
 
-## Before the verifier: find the previous iteration
+## Before the verifier
 
 ```bash
-source <run>/env.sh
+python3 -I <skill dir>/scripts/save_round.py prev --env <run>/env.sh
 ```
 
-- `PREV_URL` set, or a page titled `<SLUG> review` in the Artifact list: read it with the
-  Artifact tool (`action: "read"`). The result names the saved file.
-- With a previous page, read its ticks: `ArtifactData` `list` on collection `resolved`.
-  The ids there are the team's "resolved" ticks. Ask the user for any findings they waive.
-- Then:
+It writes `<run>/prev.json`, the latest round's findings (`[]` on a first review), and
+prints the next round number `N`. Ask the user which earlier findings they waive. `N`,
+`prev.json` and the waived ids go into the verify prompt.
+
+## After the verifier
 
 ```bash
-python3 -I <skill dir>/scripts/build_report.py prev --env <run>/env.sh [--prev <saved file>]
-```
-
-It writes `<run>/prev.json` (the last iteration's findings) and prints the next iteration
-number `N`. Both go into the verify prompt, with the waived ids and the ticked ids.
-
-## After the verifier: build and publish
-
-```bash
-python3 -I <skill dir>/scripts/build_report.py build --env <run>/env.sh [--prev <saved file>] \
+python3 -I <skill dir>/scripts/save_round.py save --env <run>/env.sh \
   --roster "<agents run>" --skipped "<agents skipped and why>" --models "<who ran on what>" \
   --verify-cmd "<the test command the repo's CLAUDE.md names>" [--single-context]
 ```
 
-It writes `<run>/report.html`. Publish it with the Artifact tool:
+It writes `HIST_DIR/r<N>.json` and `HIST_DIR/r<N>.md`, and never overwrites an earlier
+round.
 
-- **First iteration:** `file_path: <run>/report.html`, `icon: "checklist"`,
-  `capabilities: {db: {}, user: {}}`, and a one-sentence `description` naming the repo and
-  branch. Then save the URL so the next review finds it:
-  `mkdir -p "$INDEX_DIR" && echo "<url>" > "$INDEX_DIR/$SLUG.url"`.
-- **Later iterations:** the same call with `url: <PREV_URL>`, and no `icon` and no
-  `capabilities`, so the page keeps both. The ticks live in the page's store and survive
-  the republish.
+## The round record
 
-`INDEX_DIR` is inside the repository's shared git directory, so every worktree of the
-repository finds the same report, and nothing appears in `git status`.
+`r<N>.json` is the contract delivery skills read:
 
-The `resolved` collection is the only shared state: one document per ticked finding id,
-`{resolved: true, at}`. A finding the verifier marks `reopened` (ticked, yet still present)
-shows unfolded until someone ticks it again.
+```
+{repo, slug, n, date, target, head, base_ref, base, tree,
+ roster, skipped, models, verify_cmd, single_context,
+ verdict, verdict_note,
+ prior:         [{id, fate: fixed|not_fixed|waived, note}],
+ fix_together:  [{ids, note}],
+ findings:      [{id, kind, title, severity, verdict, verified, file, line,
+                  raised_by, tag, fields: [[label, text], …],
+                  disputed?, from_question?}],
+ questions:     [{title, file, line, text, needs?, raised_by}],
+ refuted:       [{title, file, line, reason, raised_by}],
+ nits:          [{file, line, text, agent}],
+ pre_existing:  [{file, line, text}],
+ checked_clear: [text],
+ batch?}
+```
 
-## No Artifact tool
+A finding that survives from one round to the next keeps its id, so a delivery skill can
+tell a new finding from one that was already reported.
 
-When this session has no Artifact tool, add `--md`. The script writes
-`$INDEX_DIR/<SLUG>-r<N>.md` with the same content and the data embedded in a comment, so
-the next review can pass that file as `--prev`. There are no ticks in this mode; ask the
-user which findings are resolved or waived. Say in the relay that the report is a file,
-and give its path.
+## Delivery
+
+The round's Markdown and the chat relay are the default. Two optional skills deliver
+elsewhere, both from `r<N>.json`:
+
+- `review-to-artifact` publishes every round of the branch as one shared page where the
+  team ticks findings resolved.
+- `review-to-difftool` posts the findings as inline comments on a difftool review.
 
 ## Relay to the user
 
 In chat, in this order: the verdict line; the findings, in full; the open questions; the
-refuted entries with their reasons; nits and pre-existing items as counts; the report
-link. No praise, and no summary of what the change does: the author already knows.
+refuted entries with their reasons; nits and pre-existing items as counts; the path of
+`r<N>.md`. No praise, and no summary of what the change does: the author already knows.

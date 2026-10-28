@@ -160,16 +160,17 @@ CLAIMS="$RUN/claims.md"
   cat "$LOG"
 } > "$CLAIMS"
 
-INDEX_DIR="$(cd "$(git rev-parse --git-common-dir)" && pwd)/blind-review"
-PREV_URL=""
-[ -f "$INDEX_DIR/$SLUG.url" ] && PREV_URL=$(cat "$INDEX_DIR/$SLUG.url")
+# Round history is per branch, in the repository's shared git directory, so every worktree sees it.
+HIST_DIR="$(cd "$(git rev-parse --git-common-dir)" && pwd)/blind-review/$SLUG"
+PREV_N=$({ ls "$HIST_DIR"/r*.json 2>/dev/null || true; } | sed -E 's#.*/r([0-9]+)\.json#\1#' | sort -n | tail -1)
+PREV_N=${PREV_N:-0}
 
 {
   printf 'RUN=%q\nMODE=%q\nREPO=%q\nNWO=%q\nAGENT_ROOT=%q\nSNAP=%q\nCLAIMS=%q\n' \
     "$RUN" "$MODE" "$REPO" "$NWO" "$AGENT_ROOT" "$SNAP" "$CLAIMS"
   printf 'TARGET=%q\nSLUG=%q\nHEAD_REF=%q\nHEAD_SHA=%q\nBASE_REF=%q\nBASE=%q\nTREE=%q\n' \
     "$TARGET" "$SLUG" "$HEAD_REF" "$HEAD_SHA" "$BASE_REF" "$BASE" "$TREE"
-  printf 'CHANGED=%q\nINDEX_DIR=%q\nPREV_URL=%q\n' "$CHANGED" "$INDEX_DIR" "$PREV_URL"
+  printf 'CHANGED=%q\nHIST_DIR=%q\nPREV_N=%q\n' "$CHANGED" "$HIST_DIR" "$PREV_N"
 } > "$RUN/env.sh"
 
 TESTS=$(grep -cE '(_test\.go|_test\.py|test_[^/]*\.py|\.(test|spec)\.[cm]?[jt]sx?|(^|/)tests?/)' "$RUN/paths.txt" || true)
@@ -180,5 +181,5 @@ echo "agent repo root: $AGENT_ROOT"
 head -1 "$SNAP"
 echo "changed lines: $CHANGED  changed paths: $(wc -l < "$RUN/paths.txt" | tr -d ' ')  test paths: $TESTS  security-sensitive paths: $RISKY"
 echo "issues: ${ISSUES:-none found}${ISSUE_SOURCE:+ (from $ISSUE_SOURCE)}"
-echo "previous report: ${PREV_URL:-none}"
+if [ "$PREV_N" -gt 0 ]; then echo "previous round: r$PREV_N ($HIST_DIR/r$PREV_N.json)"; else echo "previous round: none"; fi
 cat "$RUN/paths.txt"
