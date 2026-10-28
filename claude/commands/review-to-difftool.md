@@ -21,9 +21,10 @@ sidebar has a copy-prompt button) — this command just automates it and runs th
   tells you exactly which files are in the diff.
 
 ## 2. Produce the findings
-- Pick the reviewer from `$ARGUMENTS`: if it ends with `deep` or `adversarial`, invoke the
-  `adversarial-code-reviewer` skill; otherwise invoke the `code-review` skill (the default,
-  faster, effort-tiered). Either way the target is the same PR/branch/range.
+- Pick the reviewer from `$ARGUMENTS`: if it ends with `deep` or `blind`, invoke the
+  `blind-review` skill and take its findings from the run's `verified.json`; otherwise invoke
+  the `code-review` skill (the default, faster, effort-tiered). Either way the target is the
+  same PR/branch/range.
 - Verify every candidate against the real source before keeping it — refute anything you
   can't confirm from the code.
 - Findings that depend on code OUTSIDE the diff (error mappings, janitors, callers) are valid

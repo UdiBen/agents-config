@@ -11,7 +11,7 @@ Present 2-3 high-level alternatives to the approach a PR or design takes, side b
 
 Whoever has seen the solution proposes variations of it. So the agent that invents alternatives never sees the PR. It gets only the problem, and sees the current approach only after its own approaches are written down.
 
-Not for finding bugs (`self-review`) or stress-testing one chosen approach (`grill-me`).
+Not for finding bugs (`blind-review`) or stress-testing one chosen approach (`grill-me`).
 
 ## Step 1 — Extract the Problem
 
@@ -102,4 +102,4 @@ Show the user the confirmed problem, then `comparison.md` as written. Stop both 
 | Pointing step 2 at the main checkout, or a worktree of it | The agent finds the change in the tree or the history and lists it as an alternative |
 | Skipping the user's check of `problem.md` | Alternatives solve the wrong problem |
 | Generating the alternatives yourself after reading the PR | Same anchoring the skill exists to remove |
-| Adding bug findings or review comments to the output | That is `self-review`'s job; it buries the comparison |
+| Adding bug findings or review comments to the output | That is `blind-review`'s job; it buries the comparison |

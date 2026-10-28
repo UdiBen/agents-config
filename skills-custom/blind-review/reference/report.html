@@ -1,0 +1,305 @@
+<title>__TITLE__</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<style>
+/* Layout: one reading column; a sticky strip carries verdict, counts and the resolved filter. */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --fg: #1b2230; --muted: #5d6676; --line: #dde1e8;
+  --accent: #2f5fd0; --accent-soft: #e6edfb;
+  --crit: #b3261e; --crit-soft: #fbe9e7; --high: #b35c00; --high-soft: #fdf0e1;
+  --med: #6b5d00; --med-soft: #f7f2d4; --ok: #1f7a4a; --ok-soft: #e3f3ea;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-head: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12161d; --surface: #1a2029; --fg: #e5e9f0; --muted: #9aa3b2; --line: #2c3440;
+  --accent: #7ea2f5; --accent-soft: #1f2b45;
+  --crit: #f28b82; --crit-soft: #3a1e1c; --high: #f2b366; --high-soft: #3a2a17;
+  --med: #e0cf6a; --med-soft: #2f2b14; --ok: #6fcf97; --ok-soft: #17301f; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12161d; --surface: #1a2029; --fg: #e5e9f0; --muted: #9aa3b2; --line: #2c3440;
+  --accent: #7ea2f5; --accent-soft: #1f2b45;
+  --crit: #f28b82; --crit-soft: #3a1e1c; --high: #f2b366; --high-soft: #3a2a17;
+  --med: #e0cf6a; --med-soft: #2f2b14; --ok: #6fcf97; --ok-soft: #17301f; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--font-body); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 920px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 28px; }
+h1, h2 { font-family: var(--font-head); font-weight: 600; text-wrap: balance; margin: 0; }
+h1 { font-size: 1.7rem; line-height: 1.2; overflow-wrap: anywhere; }
+h2 { font-size: 1.05rem; letter-spacing: .02em; }
+.mono { font-family: var(--font-mono); font-size: .86em; }
+.muted { color: var(--muted); }
+.eyebrow { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+header { display: grid; gap: 10px; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: .88rem; }
+.iters { display: flex; flex-wrap: wrap; gap: 6px; }
+.iters button { font: 500 .85rem var(--font-mono); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--fg); cursor: pointer; }
+.iters button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+
+.strip { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding-block: 10px; border-bottom: 1px solid var(--line); }
+.verdict { font: 600 .9rem var(--font-head); letter-spacing: .03em; text-transform: uppercase; padding: 4px 10px; border-radius: 6px; }
+.v-blocked { background: var(--crit-soft); color: var(--crit); }
+.v-needs { background: var(--high-soft); color: var(--high); }
+.v-nits { background: var(--med-soft); color: var(--med); }
+.v-ship { background: var(--ok-soft); color: var(--ok); }
+.counts { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .88rem; font-variant-numeric: tabular-nums; }
+.counts > span { white-space: nowrap; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+.strip label { margin-left: auto; display: flex; gap: 6px; align-items: center; font-size: .88rem; cursor: pointer; }
+.note { font-size: .82rem; color: var(--muted); width: 100%; }
+
+section { display: grid; gap: 10px; }
+.callout { background: var(--accent-soft); border-radius: 8px; padding: 12px 14px; display: grid; gap: 6px; font-size: .92rem; }
+
+.finding { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--sev); border-radius: 6px; min-width: 0; }
+.finding[data-sev="CRITICAL"] { --sev: var(--crit); }
+.finding[data-sev="HIGH"] { --sev: var(--high); }
+.finding[data-sev="MEDIUM"] { --sev: var(--med); }
+.fhead { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; padding: 12px 14px; align-items: start; }
+.fhead input { width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--ok); cursor: pointer; }
+.ftitle { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.chips { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: .78rem; }
+.chip { padding: 1px 7px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.chip.sev { border-color: var(--sev); color: var(--sev); font-weight: 600; }
+.chip.tag-mechanical { color: var(--ok); border-color: var(--ok); }
+.chip.tag-needs, .chip.tag-disputed { color: var(--high); border-color: var(--high); }
+.chip.tag-confirm { color: var(--accent); border-color: var(--accent); }
+.chip.reopened { background: var(--crit-soft); color: var(--crit); border-color: var(--crit); }
+.anchor { font-family: var(--font-mono); font-size: .82rem; color: var(--muted); overflow-wrap: anywhere; }
+.fbody { padding: 0 14px 14px 44px; display: grid; gap: 8px; min-width: 0; }
+.fbody dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; font-size: .92rem; }
+.fbody dt { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; padding-top: 2px; }
+.fbody dd { margin: 0; min-width: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.finding.resolved { opacity: .62; }
+.finding.resolved .fbody { display: none; }
+.finding.resolved .ftitle { text-decoration: line-through; text-decoration-color: var(--muted); }
+body.hide-resolved .finding.resolved { display: none; }
+
+ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: .92rem; }
+ul.plain li { overflow-wrap: anywhere; }
+.fate { font: 500 .78rem var(--font-mono); padding: 1px 6px; border-radius: 4px; margin-right: 6px; }
+.fate-fixed { background: var(--ok-soft); color: var(--ok); }
+.fate-not_fixed { background: var(--crit-soft); color: var(--crit); }
+.fate-waived { background: var(--med-soft); color: var(--med); }
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; }
+details summary { cursor: pointer; font: 600 1rem var(--font-head); }
+details[open] summary { margin-bottom: 10px; }
+footer { font-size: .85rem; color: var(--muted); display: grid; gap: 4px; }
+.empty { color: var(--muted); font-style: italic; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 560px) { .fbody { padding-left: 14px; } .fbody dl { grid-template-columns: 1fr; } .strip label { margin-left: 0; } }
+@media (prefers-reduced-motion: no-preference) { .finding { transition: opacity .15s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow" id="repo"></div>
+    <h1 id="slug"></h1>
+    <div class="meta" id="meta"></div>
+    <div class="iters" id="iters" aria-label="Review iterations"></div>
+  </header>
+  <div class="strip">
+    <span class="verdict" id="verdict"></span>
+    <span class="counts" id="counts"></span>
+    <label for="hide-resolved"><input type="checkbox" id="hide-resolved"> Hide resolved</label>
+    <span class="note" id="verdict-note"></span>
+    <span class="note" id="store-note" hidden></span>
+  </div>
+  <main id="main" style="display:grid;gap:28px"></main>
+  <footer id="footer"></footer>
+</div>
+
+<script type="application/json" id="review-data">__DATA__</script>
+<script>
+(() => {
+  const data = JSON.parse(document.getElementById("review-data").textContent);
+  const iters = data.iterations;
+  let current = iters.length - 1;
+  let resolved = {};
+  let db = null;
+  let canWrite = true;
+  const LOCAL_KEY = "blind-review-resolved";
+
+  const el = (tag, attrs = {}, ...kids) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else n.setAttribute(k, v);
+    }
+    for (const kid of kids) if (kid != null) n.append(kid);
+    return n;
+  };
+  const sentence = (t) => /[.?!]$/.test(t) ? t + " " : t + ". ";
+  const anchor = (o) => o.file ? `${o.file}${o.line ? ":" + o.line : ""}` : "";
+  const sevColor = { CRITICAL: "var(--crit)", HIGH: "var(--high)", MEDIUM: "var(--med)" };
+
+  const readLocal = () => { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}"); } catch { return {}; } };
+  const writeLocal = (m) => { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(m)); } catch {} };
+
+  function isResolved(f, it) {
+    const r = resolved[f.id];
+    if (!r || !r.resolved) return false;
+    if (f.reopened && r.at && r.at < it.date) return false;
+    return true;
+  }
+
+  function note(text) {
+    const n = document.getElementById("store-note");
+    n.textContent = text; n.hidden = !text;
+  }
+
+  async function toggle(id, on) {
+    const entry = { resolved: true, at: new Date().toISOString() };
+    if (on) resolved[id] = entry; else delete resolved[id];
+    render();
+    document.getElementById("res-" + id)?.focus();
+    if (db && canWrite) {
+      try {
+        const ref = db.collection("resolved").doc(id);
+        if (on) await ref.set(entry); else await ref.delete();
+        return;
+      } catch (e) {
+        canWrite = false;
+        note("You can't change shared state on this report, so ticks are saved in this browser only.");
+      }
+    }
+    const local = readLocal();
+    if (on) local[id] = entry; else delete local[id];
+    writeLocal(local);
+  }
+
+  function findingCard(f, it) {
+    const done = isResolved(f, it);
+    const box = el("input", { type: "checkbox", id: "res-" + f.id, "aria-label": "Mark resolved: " + f.title });
+    box.checked = done;
+    box.addEventListener("change", () => toggle(f.id, box.checked));
+    const chips = el("div", { class: "chips" },
+      el("span", { class: "chip sev", text: f.severity }),
+      el("span", { class: "chip", text: f.kind }),
+      el("span", { class: "chip tag-" + f.tag.split(" ")[0], text: f.tag }),
+      el("span", { class: "chip", text: f.verdict.toLowerCase() }),
+      f.reopened && !done ? el("span", { class: "chip reopened", text: "ticked resolved, still present" }) : null,
+      f.from_question ? el("span", { class: "chip", text: "settled question" }) : null,
+      el("span", { class: "anchor", text: anchor(f) }),
+      el("span", { class: "anchor", text: f.id }));
+    const dl = el("dl");
+    for (const [k, v] of f.fields || []) dl.append(el("dt", { text: k }), el("dd", { text: v }));
+    if (f.verified) dl.append(el("dt", { text: "Verified" }), el("dd", { text: f.verified }));
+    if (f.disputed) dl.append(el("dt", { text: "Disputed" }), el("dd", { text: f.disputed }));
+    if ((f.raised_by || []).length) dl.append(el("dt", { text: "Raised by" }), el("dd", { text: f.raised_by.join(", ") }));
+    return el("article", { class: "finding" + (done ? " resolved" : ""), "data-sev": f.severity },
+      el("div", { class: "fhead" }, box, el("label", { class: "ftitle", for: "res-" + f.id, text: f.title }), chips),
+      el("div", { class: "fbody" }, dl));
+  }
+
+  function list(rows, fmt) {
+    const ul = el("ul", { class: "plain" });
+    for (const r of rows) ul.append(fmt(r));
+    return ul;
+  }
+
+  function collapsible(title, rows, fmt, open = false) {
+    if (!rows || !rows.length) return null;
+    const d = el("details", open ? { open: "" } : {}, el("summary", { text: `${title} (${rows.length})` }), list(rows, fmt));
+    return d;
+  }
+
+  function render() {
+    const it = iters[current];
+    const prevIt = current > 0 ? iters[current - 1] : null;
+    document.getElementById("repo").textContent = `blind-review · ${data.repo}`;
+    document.getElementById("slug").textContent = data.slug;
+    const meta = document.getElementById("meta");
+    meta.replaceChildren(
+      el("span", { class: "mono", text: `r${it.n}` }),
+      el("span", {}, "head ", el("span", { class: "mono", text: it.head.slice(0, 12) })),
+      el("span", {}, "base ", el("span", { class: "mono", text: `${it.base_ref} @ ${it.base.slice(0, 12)}` })),
+      el("span", { text: it.tree }),
+      el("span", { text: new Date(it.date).toLocaleString() }));
+
+    const bar = document.getElementById("iters");
+    bar.replaceChildren(...(iters.length > 1 ? iters.map((x, i) => {
+      const b = el("button", { type: "button", "aria-pressed": String(i === current), text: `r${x.n}` });
+      b.addEventListener("click", () => { current = i; render(); });
+      return b;
+    }) : []));
+
+    const v = document.getElementById("verdict");
+    v.textContent = it.verdict;
+    v.className = "verdict " + ({ blocked: "v-blocked", "needs changes": "v-needs", "ship with nits": "v-nits" }[it.verdict] || "v-ship");
+    document.getElementById("verdict-note").textContent = it.verdict_note || "";
+
+    const open = it.findings.filter((f) => !isResolved(f, it));
+    const counts = document.getElementById("counts");
+    counts.replaceChildren(...["CRITICAL", "HIGH", "MEDIUM"].map((s) => {
+      const n = open.filter((f) => f.severity === s).length;
+      return el("span", {}, el("span", { class: "dot", style: `background:${sevColor[s]}` }), `${n} ${s.toLowerCase()}`);
+    }), el("span", { class: "muted", text: `${it.findings.length - open.length}/${it.findings.length} resolved` }));
+
+    const main = document.getElementById("main");
+    main.replaceChildren();
+    if (it.single_context) main.append(el("div", { class: "callout", text: "Single-context review: one agent read and judged the diff, so the bias this skill exists to remove was not removed." }));
+
+    if ((it.prior || []).length) {
+      const titles = Object.fromEntries((prevIt ? prevIt.findings : []).map((f) => [f.id, f.title]));
+      main.append(el("section", {}, el("h2", { text: `Prior findings (vs r${it.n - 1})` }),
+        list(it.prior, (p) => el("li", {}, el("span", { class: "fate fate-" + p.fate, text: p.fate.replace("_", " ") }),
+          el("span", { class: "anchor", text: p.id + " " }), titles[p.id] ? `${titles[p.id]} — ` : "", p.note || ""))));
+    }
+    if (it.batch) main.append(el("section", {}, el("h2", { text: "Batch" }), el("div", { class: "callout", text: typeof it.batch === "string" ? it.batch : JSON.stringify(it.batch, null, 2) })));
+    if ((it.fix_together || []).length) {
+      main.append(el("section", {}, el("h2", { text: "Fix together" }),
+        el("div", { class: "callout" }, ...it.fix_together.map((g) => el("div", {}, el("span", { class: "mono", text: g.ids.join(" + ") + " " }), g.note || "")))));
+    }
+    const fs = el("section", {}, el("h2", { text: "Findings" }));
+    if (!it.findings.length) fs.append(el("p", { class: "empty", text: "No findings cleared the bar." }));
+    for (const f of it.findings) fs.append(findingCard(f, it));
+    main.append(fs);
+
+    for (const node of [
+      collapsible("Open questions", it.questions, (q) => el("li", {}, el("span", { class: "anchor", text: anchor(q) + " " }), el("strong", { text: sentence(q.title) }), q.text,
+        q.needs ? el("div", { class: "muted", text: "Settled by: " + q.needs }) : null), true),
+      collapsible("Refuted by verifier", it.refuted, (r) => el("li", {}, el("span", { class: "anchor", text: anchor(r) + " " }), el("strong", { text: sentence(r.title) }), r.reason)),
+      collapsible("Nits", it.nits, (n) => el("li", {}, el("span", { class: "anchor", text: anchor(n) + " " }), n.text, n.agent ? el("span", { class: "muted", text: ` (${n.agent})` }) : null)),
+      collapsible("Pre-existing", it.pre_existing, (p) => el("li", {}, el("span", { class: "anchor", text: anchor(p) + " " }), p.text)),
+      collapsible("Checked and clear", it.checked_clear, (c) => el("li", { text: c })),
+    ]) if (node) main.append(node);
+
+    const foot = document.getElementById("footer");
+    foot.replaceChildren(
+      el("div", { text: `Roster: ${it.roster}` + (it.skipped ? ` · skipped: ${it.skipped}` : "") }),
+      it.models ? el("div", { text: `Models: ${it.models}` }) : null,
+      it.verify_cmd ? el("div", {}, "Verify with ", el("span", { class: "mono", text: it.verify_cmd })) : null);
+  }
+
+  document.getElementById("hide-resolved").addEventListener("change", (e) => document.body.classList.toggle("hide-resolved", e.target.checked));
+
+  resolved = readLocal();
+  render();
+
+  (async () => {
+    db = window.claude && window.claude.use ? await window.claude.use("db") : null;
+    if (!db) { note("Ticks are saved in this browser only."); return; }
+    try {
+      const user = await window.claude.use("user");
+      if (user && (await user.can("data.write")) === false) {
+        canWrite = false;
+        note("You can view this report but not change it, so ticks are saved in this browser only.");
+      }
+    } catch {}
+    db.collection("resolved").onSnapshot((snap) => {
+      const shared = {};
+      for (const d of snap.docs) shared[d.id] = d.data();
+      resolved = canWrite ? shared : { ...shared, ...readLocal() };
+      render();
+    }, () => note("Shared ticks could not be loaded; showing this browser's ticks."));
+  })();
+})();
+</script>
