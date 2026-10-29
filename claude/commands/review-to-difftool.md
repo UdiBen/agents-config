@@ -27,8 +27,9 @@ sidebar has a copy-prompt button) — this command just automates it and runs th
 - With `blind-review`, the findings are its latest saved round,
   `.git/blind-review/<branch>/r<N>.json` in the repo's git common dir. Reuse that round if its
   `head` is the target's current head; otherwise run `blind-review` first. Post its `findings`
-  (the `tag`, `severity` and `verdict` go in the comment body) and its open `questions` as notes.
-  They are already verified, so skip the verification step below for them.
+  (the `tag`, `severity`, `verdict` and `Proof` go in the comment body) and its `questions`, the
+  claims no local test could reach, as notes. They are already proven, so skip the verification
+  step below for them.
 - Verify every candidate against the real source before keeping it — refute anything you
   can't confirm from the code.
 - Findings that depend on code OUTSIDE the diff (error mappings, janitors, callers) are valid

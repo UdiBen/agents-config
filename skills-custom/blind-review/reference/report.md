@@ -15,24 +15,24 @@ Derived by the script, never by hand:
 |---|---|
 | `disputed` | the entry has a `Disputed:` line |
 | `needs decision` | every `CONTRACT:`; a `SIMPLIFY:` whose `Costs:` is not "nothing" |
-| `confirm first` | the verifier said PLAUSIBLE |
+| `confirm first` | the static checker returned no verdict (`UNCHECKED`) |
 | `mechanical` | everything else: the fix is stated, apply it |
 
 Verdict: any CRITICAL → blocked; any HIGH → needs changes; MEDIUM only → ship with nits;
 none → ship. Refuted, pre-existing and question entries carry no tag. Whoever fixes the
 findings does not act on them unless the user says so.
 
-## Before the verifier
+## Before proving
 
 ```bash
 python3 -I <skill dir>/scripts/save_round.py prev --env <run>/env.sh
 ```
 
 It writes `<run>/prev.json`, the latest round's findings (`[]` on a first review), and
-prints the next round number `N`. Ask the user which earlier findings they waive. `N`,
-`prev.json` and the waived ids go into the verify prompt.
+prints the next round number `N`. Ask the user which earlier findings they waive.
+`prev.json` and the waived ids go to the static checker; `N` goes to `proof.py assemble`.
 
-## After the verifier
+## After proving
 
 ```bash
 python3 -I <skill dir>/scripts/save_round.py save --env <run>/env.sh \
@@ -40,8 +40,8 @@ python3 -I <skill dir>/scripts/save_round.py save --env <run>/env.sh \
   --verify-cmd "<the test command the repo's CLAUDE.md names>" [--single-context]
 ```
 
-It writes `HIST_DIR/r<N>.json` and `HIST_DIR/r<N>.md`, and never overwrites an earlier
-round.
+It writes `HIST_DIR/r<N>.json` and `HIST_DIR/r<N>.md`, copies the round's probe tests to
+`HIST_DIR/r<N>-proof/`, and never overwrites an earlier round.
 
 ## The round record
 
@@ -56,7 +56,7 @@ round.
  findings:      [{id, kind, title, severity, verdict, verified, file, line,
                   raised_by, tag, fields: [[label, text], …],
                   disputed?, from_question?}],
- questions:     [{title, file, line, text, needs?, raised_by}],
+ questions:     [{title, file, line, text, needs, raised_by}],
  refuted:       [{title, file, line, reason, raised_by}],
  nits:          [{file, line, text, agent}],
  pre_existing:  [{file, line, text}],
@@ -64,8 +64,12 @@ round.
  batch?}
 ```
 
-A finding that survives from one round to the next keeps its id, so a delivery skill can
-tell a new finding from one that was already reported.
+`verdict` is `PROVEN` for a behaviour claim a test reproduced, whose `fields` end with a
+`Proof` entry (method, command, decisive output, probe files), or `CONFIRMED` for a
+finding resting on quoted text. `questions` are the claims no local test can reach;
+`needs` says what is out of reach. A finding that survives from one round to the next
+keeps its id, so a delivery skill can tell a new finding from one that was already
+reported.
 
 ## Delivery
 
@@ -78,6 +82,6 @@ elsewhere, both from `r<N>.json`:
 
 ## Relay to the user
 
-In chat, in this order: the verdict line; the findings, in full; the open questions; the
-refuted entries with their reasons; nits and pre-existing items as counts; the path of
-`r<N>.md`. No praise, and no summary of what the change does: the author already knows.
+In chat, in this order: the verdict line; the findings, in full, with their proof; what
+could not be proven locally, and why; the refuted entries with their reasons; nits and
+pre-existing items as counts; the path of `r<N>.md`. No praise, and no summary of what the change does: the author already knows.

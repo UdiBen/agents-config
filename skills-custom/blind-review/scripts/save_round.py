@@ -7,7 +7,8 @@
   save_round.py save --env RUN/env.sh --roster LIST [--skipped TEXT] [--models TEXT]
                      [--verify-cmd CMD] [--single-context]
       Read RUN/verified.json, derive tags and the verdict, and write HIST_DIR/r<N>.json and
-      HIST_DIR/r<N>.md. Prints both paths.
+      HIST_DIR/r<N>.md. The round's probe tests are kept in HIST_DIR/r<N>-proof/. Prints the
+      record and Markdown paths.
 
 A round record is the contract for delivery skills (review-to-artifact, review-to-difftool):
 {repo, slug, n, date, target, head, base_ref, base, tree, roster, skipped, models,
@@ -20,6 +21,7 @@ import json
 import pathlib
 import re
 import shlex
+import shutil
 
 SEVERITIES = ["CRITICAL", "HIGH", "MEDIUM"]
 
@@ -57,7 +59,7 @@ def tag(finding):
         return "needs decision"
     if finding["kind"] == "SIMPLIFY" and field(finding, "Costs").lower().rstrip(".") != "nothing":
         return "needs decision"
-    if finding.get("verdict") == "PLAUSIBLE":
+    if finding.get("verdict") == "UNCHECKED":
         return "confirm first"
     return "mechanical"
 
@@ -103,9 +105,9 @@ def to_markdown(rec, prev):
         if f.get("disputed"):
             rows.append(f"Disputed: {f['disputed']}")
     section("Findings", rows)
-    section("Open questions", [f"- {q['file']}:{q['line']} — {q['title']}: {q['text']}"
-                               + (f" Settled by: {q['needs']}" if q.get("needs") else "") for q in rec["questions"]])
-    section("Refuted by verifier", [f"- {r['file']}:{r['line']} — {r['title']}: {r['reason']}" for r in rec["refuted"]])
+    section("Could not be proven locally", [f"- {q['file']}:{q['line']} — {q['title']}: {q['text']}"
+                               + (f" Out of reach: {q['needs']}" if q.get("needs") else "") for q in rec["questions"]])
+    section("Refuted", [f"- {r['file']}:{r['line']} — {r['title']}: {r['reason']}" for r in rec["refuted"]])
     section("Nits", [f"- {n['file']}:{n['line']} — {n['text']} ({n.get('agent', '')})" for n in rec["nits"]])
     section("Pre-existing", [f"- {p['file']}:{p['line']} — {p['text']}" for p in rec["pre_existing"]])
     section("Checked and clear", [f"- {c}" for c in rec["checked_clear"]])
@@ -164,6 +166,9 @@ def cmd_save(args):
     out.write_text(json.dumps(rec, indent=1))
     md = hist / f"r{rec['n']}.md"
     md.write_text(to_markdown(rec, prev))
+    proof = run / "proof"
+    if proof.is_dir():
+        shutil.copytree(proof, hist / f"r{rec['n']}-proof", dirs_exist_ok=True)
     print(out)
     print(md)
 

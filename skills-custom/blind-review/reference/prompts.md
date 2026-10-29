@@ -30,6 +30,7 @@ Mindset: assume the code is broken and prove it. No compliments. If it looks
 wrong, say it is wrong and construct the trigger. A claim that rests on library,
 runtime or pinned-version behaviour you could not check, by running it or by
 reading the source at the pinned version, is a QUESTION block, never a finding.
+The verifiers try to prove every QUESTION by running code.
 Trace the code before you write one: a QUESTION is for what the code cannot
 settle, not for a route you did not finish following.
 Report a finding only if a reviewer would ask for the change before approving.
@@ -272,112 +273,132 @@ INPUT:  <every report path>  (repo root: <agent repo root>)
 TASK:
 - One problem, one entry. Findings at the same code that the same fix would
   satisfy become one entry: the clearest title and body, the highest severity,
-  and a `Raised by:` line naming every agent.
+  and every agent that raised it.
 - The bar. An entry stays a finding only if a reviewer would ask for the change
-  before approving. Move every other entry to the nits, marked `(demoted)`.
+  before approving. Move every other entry to the nits, marked "(demoted)".
 - Contradictions. When one agent asks for what another rejects, or clears what
-  another flags, write one entry with a `Disputed:` line giving both positions.
+  another flags, write one entry with `disputed` giving both positions.
 - Questions stay questions. Never promote a QUESTION block to a finding; the
-  verifier settles them.
+  verifiers prove or refute them.
 - Nothing else leaves. Every finding is in the list, merged into an entry, or
   in the nits.
 
-OUTPUT: write <run>/merged.md with six sections:
-  ## Findings      CRITICAL, then HIGH, then MEDIUM; each entry in its agent's
-                   block format plus `Raised by:`
-  ## Fix together  entries that touch the same code, so one fix can't delete
-                   the site another fix needs
-  ## Questions     every QUESTION block, deduped, with `Raised by:`
-  ## Nits          every agent's nits and every demoted finding, deduped, one
-                   line each: `path:line — what to change (agent)`
-  ## Pre-existing  the agents' pre-existing lists, deduped
-  ## Checked and clear  the agents' lists, deduped
-Reply with only the path, the finding count by severity, the question count
-and the nit count.
-```
-
-## Verify prompt
-
-```
-Check each finding in a code review against the code. You did not write the
-code or the review. Do not feel pressure to confirm — or to reject.
-
-INPUT:  <run>/merged.md, the snapshot <SNAP>  (repo root: <AGENT_ROOT>,
-        base commit: <BASE>)
-        <re-review only: the previous round's findings, <run>/prev.json;
-        the user's waived list: <ids or "none">>
-
-For each entry under "## Findings", answer three questions from the code and
-give one verdict:
-  1. Is it real? Re-read the quoted line, trace the claim yourself, and try to
-     construct the trigger.
-  2. Did this diff introduce it, or make it worse? `git grep` the construct on
-     the base commit when unsure.
-  3. Is it already handled somewhere the reviewer did not look — a guard in a
-     caller, a validation one layer up, a test in the same diff?
-
-Verdict, exactly one:
-  CONFIRMED  you can name the inputs/state that trigger it and the wrong
-             output or crash; quote the line.
-  PLAUSIBLE  the mechanism is real, the trigger is uncertain (timing, env,
-             config); state what would confirm it.
-  REFUTED    factually wrong (the code doesn't say that), provably impossible
-             (show the type, constant or invariant), already handled in this
-             diff (cite the guard), or pure style with no observable effect.
-             Quote the line that proves it.
-
-PLAUSIBLE by default: do not refute a finding for being "speculative" or
-"depends on runtime state" when the state is realistic — a race, a nil on a
-rare-but-reachable path (error handler, cold cache, missing optional field),
-a boundary the code does not exclude, a retry storm or partial failure, a
-regex or allowlist that lost an anchor. REFUTED only when constructible from
-the code. A missed bug ships; a wrong finding costs a minute.
-
-Then settle each entry under "## Questions" from the code. Trace it: read the
-callers and callees, run the code, or read the dependency's source at the
-version go.mod pins. Then, exactly one:
-  - It is a defect: write it as a finding, with the kind of the agent that
-    owns it, a verdict as above, and `"from_question": true`.
-  - It is not a defect: move it to refuted, with the line that proves it.
-  - The code cannot settle it (production data, another system's runtime
-    behaviour, a product decision): keep it as a question and say in `needs`
-    what would settle it.
-"I could not find the route" is not unsettleable; keep tracing.
-
-Judge each entry on its own; one verdict must not sway another. Re-derive
-every path:line with `grep -n` on the file in the repo root; no anchor may
-exceed the file's line count.
-
-Ids. A finding that is the same problem as one in prev.json keeps that id. Every
-other finding gets `r<N>-<k>`, numbered from 1 in severity order.
-
-Re-review only. Walk every finding in prev.json and state its fate against the
-current code, not against a commit message: `fixed` (how), `not_fixed` (still
-fails because …), or `waived` (only if its id is on the user's waived list).
-A not_fixed finding also appears in "findings" under its old id.
-
-OUTPUT: write <run>/verified.json, one JSON object, nothing else:
+OUTPUT: write <run>/merged.json, one JSON object, nothing else:
 {
-  "verdict_note": "<one line on the overall state>",
-  "prior":      [{"id", "fate": "fixed|not_fixed|waived", "note"}],
-  "fix_together": [{"ids": ["<id>", ...], "note"}],
-  "findings":   [{"id", "kind": "BUG|VIOLATION|RISK|MISSING|CONTRACT|SIMPLIFY|EXISTS",
-                  "title", "severity": "CRITICAL|HIGH|MEDIUM",
-                  "verdict": "CONFIRMED|PLAUSIBLE", "verified": "<what you checked>",
-                  "file", "line", "raised_by": ["<agent>", ...],
-                  "disputed": "<both positions, or omit>", "from_question": true|omit,
+  "findings":   [{"mid": "f1", "kind": "BUG|VIOLATION|RISK|MISSING|CONTRACT|SIMPLIFY|EXISTS",
+                  "title", "severity": "CRITICAL|HIGH|MEDIUM", "file", "line",
+                  "raised_by": ["<agent>", ...], "disputed": "<both positions, or omit>",
                   "fields": [["Evidence", "..."], ["Trigger", "..."], ["Fix", "..."]]}],
-  "questions":  [{"title", "file", "line", "text", "needs", "raised_by": [...]}],
-  "refuted":    [{"title", "file", "line", "reason", "raised_by": [...]}],
+  "questions":  [{"mid": "q1", "title", "file", "line", "text", "raised_by": [...]}],
+  "fix_together": [{"mids": ["f1", "f3"], "note"}],
   "nits":       [{"file", "line", "text", "agent"}],
   "pre_existing": [{"file", "line", "text"}],
   "checked_clear": ["<one line each>"]
 }
-`fields` keeps the agent's block lines in order, label and text, exactly as
-written (Evidence, Trigger, Scale, Doctrine, Current, Simpler, Saves, Costs,
-Surface, Producer / consumer, Order, Fix, and the body as "Detail"). A finding
-that fails question 2 moves to pre_existing. Nothing is deleted. `prior` is
-empty on a first review. Reply with only the path and
-the count of confirmed, plausible, refuted, pre-existing and open questions, and
-how many questions you settled.
+`mid` numbers findings f1, f2 … in severity order and questions q1, q2 …. `fields`
+keeps the agent's block lines in order, label and text, exactly as written
+(Evidence, Trigger, Scale, Doctrine, Current, Simpler, Saves, Costs, Surface,
+Producer / consumer, Order, Fix, and the body as "Detail"). `fix_together` lists
+entries that touch the same code, so one fix can't delete the site another fix
+needs. Reply with only the path, the finding count by severity, the question
+count and the nit count.
+```
+
+## Prove prompt
+
+One per entry in `<run>/proof/tasks/`. Every behaviour claim (`BUG`, `RISK`, a `MISSING`
+test) and every question gets one.
+
+```
+Prove or disprove one claim from a code review by running code. You did not
+write the code or the review. False claims are common; do not feel pressure
+to confirm, or to reject.
+
+CLAIM:    <run>/proof/tasks/<mid>.json
+TARGET:   the snapshot <SNAP>; the change under review is checked out at
+          <AGENT_ROOT>; the base commit <BASE> is checked out at <run>/base
+WORKDIR:  <run>/proof/<mid>/ — every file you create goes here
+DOCTRINE: <AGENT_ROOT>/CLAUDE.md, for how this repo builds and runs its tests
+
+Never create, edit or delete a file under <AGENT_ROOT> or <run>/base. To add a
+test file or replace a source file in Go, write it in WORKDIR and pass it with
+`go test -overlay <WORKDIR>/overlay.json`. In any other language, copy what you
+need into WORKDIR and run it there.
+
+Method:
+1. Write the smallest test that fails on the change under review if the claim
+   is true: it drives the trigger the claim names and asserts the correct
+   behaviour.
+   - A claim that a test proves nothing: break the code under test through
+     the overlay and show that the test still passes.
+   - A claim about cost: count calls, queries or allocations as the input
+     grows, or benchmark two input sizes.
+   - A claim that needs a running server: use the `verify-lakefs` skill when
+     it is installed.
+2. Run it against <AGENT_ROOT>.
+3. When it fails as claimed, run it against <run>/base. Failing there too
+   means the problem was already there.
+Fix what stops the test from building before you give up on it.
+
+Verdict, exactly one:
+  PROVEN        the test fails on the change the way the claim says, and
+                passes on the base or cannot run there (say which)
+  REFUTED       the test passes on the change, or the code rules the
+                trigger out; quote the line that does
+  PRE_EXISTING  the test fails on the base too
+  THEORETICAL   no local test can reach the trigger: production data, an
+                outside service, timing that cannot be forced. Name what is
+                out of reach. A build you could not fix counts only with the
+                error quoted.
+For a question that you prove, also give the kind (BUG or RISK) and the
+severity: CRITICAL data loss, a security hole or an outage; HIGH wrong
+behaviour a user or operator will hit; MEDIUM a reviewer blocks on it.
+
+OUTPUT: write <WORKDIR>/result.json, one JSON object:
+{"mid", "verdict", "kind": "<questions only>", "severity": "<questions only>",
+ "file", "line": <re-derived with grep -n; no anchor past the file's end>,
+ "proof": {"method": "unit|overlay|mutation|count|server|none",
+           "files": ["<WORKDIR paths>"], "command": "<what you ran>",
+           "result": "<the decisive output lines, at most 20>"},
+ "reason": "<one or two sentences>"}
+Reply with only the path and the verdict.
+```
+
+## Static check prompt
+
+One agent. It checks the findings that rest on quoted text (`VIOLATION`, `SIMPLIFY`,
+`EXISTS`, `CONTRACT`, a `MISSING` that is not a test) and accounts for the previous
+round.
+
+```
+Check review findings that rest on quoted text, not on behaviour, and account
+for the previous round. You did not write the code or the review.
+
+INPUT:  <run>/merged.json; the entries to check are the mids in
+        <run>/proof/static.json. The snapshot <SNAP> (repo root: <AGENT_ROOT>,
+        base commit: <BASE>).
+        <re-review only: the previous round's findings, <run>/prev.json; the
+        user's waived ids: <ids or "none">>
+
+For each listed entry:
+  1. Is it real? The quoted line is in the file, and the quoted rule says what
+     the entry claims.
+  2. Did this diff introduce it? `git grep` the construct on the base commit.
+  3. Is it already handled? The rule's own exceptions, the three nearest files
+     doing the same, a later line in the diff.
+Verdict: CONFIRMED, REFUTED (quote what disproves it) or PRE_EXISTING.
+Re-derive each `file:line` with `grep -n`.
+
+Re-review only. For every finding in prev.json, state its fate against the
+current code, not a commit message: `fixed` (how), `not_fixed` (where it still
+is), or `waived` (only when its id is on the waived list). When an entry in
+merged.json, finding or question, is the same problem as a prior finding,
+map its mid to the prior id.
+
+OUTPUT: write <run>/static.json, one JSON object:
+{"static": [{"mid", "verdict", "checked": "<what you looked at>",
+             "reason": "<for REFUTED or PRE_EXISTING>", "file", "line"}],
+ "prior":  [{"id", "fate": "fixed|not_fixed|waived", "note"}],
+ "carry":  {"<mid>": "<prior id>"}}
+Reply with only the path and the count of confirmed, refuted and pre-existing.
 ```

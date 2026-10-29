@@ -6,7 +6,7 @@ description: >-
   "sanity-check this before the PR", "review PR #N", or as the QA gate before opening or
   merging a PR. The orchestrator never reads the diff: it snapshots it, dispatches fresh
   agents (bugs, removed behaviour, tests, risk, conventions, lean, intent/cross-repo),
-  merges, verifies with a recall-biased three-state verdict, and saves the round to the
+  merges, proves every behaviour claim with a test that fails on the change, and saves the round to the
   branch's history so a re-review accounts for every earlier finding. Results go to chat
   and Markdown; review-to-artifact and review-to-difftool deliver them elsewhere.
   Read-only toward the reviewed repo: never commits, pushes, posts to GitHub or edits
@@ -17,15 +17,16 @@ description: >-
 
 Reviewing a changeset — **yours** (the default) or **someone else's PR** — with agents that
 have never seen the code written. One pipeline, five steps: **snapshot → dispatch →
-merge → verify → save**. The reference files and scripts carry the details; this file
+merge → prove → save**. The reference files and scripts carry the details; this file
 is the contract. Delivering the result anywhere other than chat is a separate skill's job.
 
 | File | What it holds |
 |---|---|
 | `scripts/snapshot.sh` | Resolves the target and writes the run directory: snapshot, claims, `env.sh` |
+| `scripts/proof.py` | Splits the merged list into proof tasks, and assembles the verdicts into `verified.json` |
 | `scripts/save_round.py` | Reads the previous round, and saves the next one as `r<N>.json` and `r<N>.md` |
 | `reference/changeset.md` | Targets, the run directory, stacked bases, batches |
-| `reference/prompts.md` | The seven agent rows, the dispatch template, the merge and verify prompts |
+| `reference/prompts.md` | The seven agent rows, the dispatch template, the merge, prove and static check prompts |
 | `reference/report.md` | Round history, tags, verdict, the round record, delivery |
 | `reference/doctrine-lakefs.md` | Treeverse/lakeFS doctrine handed to agents (Go, layering, cross-repo, Enterprise) |
 
@@ -51,11 +52,11 @@ nothing.
 - **Never put the authorial rationale in a dispatch** — what the change is for, what you
   were trying to do. The one exception is the intent agent, which gets `claims.md`,
   **labelled as claims to test**, never as context.
-- **Never drop or re-rate** what the merge and verifier return. You did not read the code;
+- **Never drop or re-rate** what the merge, provers and static checker return. You did not read the code;
   you are not equipped to overrule an agent that did. Dispute in writing (`Disputed:`).
 - **Read-only toward the reviewed repo.** No commit, push, checkout, stash, add, reset; no
   GitHub comments, approvals or labels; no edits to tracked files. Allowed: `git fetch`;
-  the run directory, including a detached PR worktree inside it; and the round history
+  the run directory, including the detached PR and base checkouts inside it; and the round history
   under the repository's git directory (`.git/blind-review/<branch>/`).
 
 ## Step 1 — Snapshot
@@ -87,7 +88,8 @@ Seven agents, each owning one question. Full rows and the template are in
 | 6 | **lean** | Code that should not exist or should be smaller; mechanisms that already exist; dependency freshness | `sonnet` |
 | 7 | **intent** | What should also have changed; the issue, no more and no less; cross-repo contracts and deploy order | `sonnet` |
 | — | **merge** | Dedup into one list; nothing dropped | `sonnet` |
-| — | **verify** | Three-state verdict on every finding; prior-round accounting | session |
+| — | **prove** | One per behaviour claim and question: a test that fails if the claim is true | session |
+| — | **static check** | Text-based findings against the quoted line and rule; prior-round accounting | `sonnet` |
 
 **Models.** "session" means omit `model`, so the agent runs on this session's model.
 `sonnet` means pass `model: "sonnet"`. The agents where a miss ships a bug run on the
@@ -113,38 +115,51 @@ large diff overruns the message limit otherwise.
 
 ## Step 3 — Merge
 
-A fresh agent merges the report files into one list: one problem, one entry; findings
-under the bar demoted to nits; questions kept as questions; contradictions kept as
-`Disputed:`; nothing deleted. Prompt in `reference/prompts.md`.
+A fresh agent merges the report files into one list, `merged.json`: one problem, one
+entry; findings under the bar demoted to nits; questions kept as questions;
+contradictions kept as `disputed`; nothing deleted. Prompt in `reference/prompts.md`.
 
-## Step 4 — Verify
+## Step 4 — Prove
 
 The merge decides what is one problem. It does not decide what is true. A wrong finding
-that reaches a fixer gets applied.
+that reaches a fixer gets applied, so every behaviour claim is proven by running code
+before it is reported.
 
-First load the previous round and get the next round number (`reference/report.md`,
-"Before the verifier"). Then one fresh agent re-checks every
-finding against the code with a **three-state verdict** (`CONFIRMED` / `PLAUSIBLE` /
-`REFUTED`) and three questions: is it real, did this diff introduce it, is it handled
-elsewhere. It is **recall-biased**: a realistic trigger is PLAUSIBLE, and REFUTED needs
-proof constructible from the code. Refuted entries are **kept with their reason**, never
-deleted. On a re-review it also accounts for every prior finding as fixed, not fixed or
-waived, keeping the same id for a finding that is still present. It also settles every
-question it can from the code, turning each into a finding or a refuted entry; only a
-question the code cannot answer stays open, saying what would answer it. It writes
-`verified.json`.
-Prompt in `reference/prompts.md`.
+1. Load the previous round and get the round number `N` (`reference/report.md`, "Before
+   proving").
+2. Split the list: `python3 -I <skill dir>/scripts/proof.py split --env <run>/env.sh`.
+   It writes one proof task per behaviour claim (`BUG`, `RISK`, a `MISSING` test) and per
+   question, lists the text-based findings for the static check, and checks out the base
+   commit at `<run>/base` for the provers.
+3. Dispatch, in **one message**, one **prover** per task and one **static checker**
+   (prompts in `reference/prompts.md`). Skip the static checker only on a first review
+   with nothing to check. With more tasks than free agent slots, dispatch in batches.
+   - A prover writes the smallest test that fails if the claim is true and runs it on
+     the change and on the base. Its verdict is `PROVEN`, `REFUTED`, `PRE_EXISTING`, or,
+     rarely, `THEORETICAL`: the trigger is out of reach of any local test, and it says
+     what is out of reach. It never touches the checked-out code; probes go in
+     `<run>/proof/<mid>/` and run through Go's `-overlay` or a copy.
+   - The static checker confirms or refutes the text-based findings against the quoted
+     line and rule, and on a re-review accounts for every prior finding as fixed, not
+     fixed or waived, mapping a finding that is still present to its prior id.
+4. Assemble: `python3 -I <skill dir>/scripts/proof.py assemble --env <run>/env.sh --n <N>`.
+   It writes `verified.json`. Refuted entries are kept with their reason; theoretical
+   ones become the round's open questions; a claim with no result is kept as an open
+   question, never dropped.
 
 ## Step 5 — Save
 
 Save the round to the branch's history with `save_round.py` (`reference/report.md`). It
-writes `r<N>.json`, the record delivery skills read, and `r<N>.md`. Then relay to the
-user: the verdict line, the findings in full, the open questions, the refuted entries with
-reasons, nit and pre-existing counts, and the path of `r<N>.md`.
+writes `r<N>.json`, the record delivery skills read, `r<N>.md`, and keeps the probe tests
+in `r<N>-proof/` so whoever fixes a finding can start from its failing test. Then relay to
+the user: the verdict line, the findings in full with their proof, what could not be
+proven locally and why, the refuted entries with reasons, nit and pre-existing counts,
+and the path of `r<N>.md`.
 
 Then stop every agent you started (`TaskStop`) and confirm with `ListAgents`. Reports
 first, then stop: an agent whose report you only have inline takes the rest of it with it.
-In PR mode, remove the worktree unless the user wants it kept for fixing.
+Remove the base checkout (`git worktree remove --force <run>/base`) and, in PR mode, the PR
+worktree unless the user wants it kept for fixing.
 
 ## After the report
 
@@ -173,14 +188,14 @@ again the moment the findings arrive and you start defending the code.
 | "My way is cleaner than the surrounding code" | Consistency beats a local optimum. Match the neighbours, or change the whole file in its own commit |
 | "I'll clean it up in a follow-up" | Write the follow-up down now, or do it now. Otherwise it isn't real |
 | "lean is just playing devil's advocate" | That is its job. Relay every block; the user rules on them |
-| "The verifier refuted it, so I can leave it out" | Refuted entries are relayed with their reason. The user may know better than the verifier |
+| "The prover refuted it, so I can leave it out" | Refuted entries are relayed with their reason. The user may know better than the prover |
 | "I'll just drop that one, it's noise" | You didn't read the diff. Dispute it in writing; don't delete it |
 | "That's planned groundwork, the caller comes in a later issue" | Then the intent agent should have seen it in the parent issues. If it did not, the finding becomes a hand-off note, not a deletion |
 
 ## No subagents available?
 
 Review the rows yourself in table order, one at a time, finishing each before the next.
-Then re-check every finding against the verifier's three questions, write
+Then prove each behaviour claim yourself as the prove prompt describes, write
 `verified.json` yourself, and save the round with `--single-context`. The record and the
 relay then say plainly that the bias this skill exists to remove was not removed.
 
@@ -190,6 +205,7 @@ relay then say plainly that the bias this skill exists to remove was not removed
 - You dispatched with `subagent_type: "fork"`.
 - You put "what this change is for" into any dispatch but intent's claims slot.
 - You dropped or re-rated an entry instead of disputing it.
-- You handed a fixer `merged.md` without running the verifier.
+- You handed a fixer `merged.json` without proving it.
+- You accepted a `THEORETICAL` verdict that names nothing out of reach.
 - You saved a round over an earlier one, or started a re-review from round 1.
 - Every agent returned "No findings" on a diff over 200 lines.
