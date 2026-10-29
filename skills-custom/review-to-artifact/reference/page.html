@@ -269,9 +269,9 @@ footer { font-size: .85rem; color: var(--muted); display: grid; gap: 4px; }
     main.append(fs);
 
     for (const node of [
-      collapsible("Could not be proven locally", it.questions, (q) => el("li", {}, el("span", { class: "anchor", text: anchor(q) + " " }), el("strong", { text: sentence(q.title) }), q.text,
-        q.needs ? el("div", { class: "muted", text: "Out of reach: " + q.needs }) : null), true),
-      collapsible("Refuted", it.refuted, (r) => el("li", {}, el("span", { class: "anchor", text: anchor(r) + " " }), el("strong", { text: sentence(r.title) }), r.reason)),
+      collapsible("Open questions", it.questions, (q) => el("li", {}, el("span", { class: "anchor", text: anchor(q) + " " }), el("strong", { text: sentence(q.title) }), q.text,
+        q.needs ? el("div", { class: "muted", text: "Settled by: " + q.needs }) : null), true),
+      collapsible("Refuted by verifier", it.refuted, (r) => el("li", {}, el("span", { class: "anchor", text: anchor(r) + " " }), el("strong", { text: sentence(r.title) }), r.reason)),
       collapsible("Nits", it.nits, (n) => el("li", {}, el("span", { class: "anchor", text: anchor(n) + " " }), n.text, n.agent ? el("span", { class: "muted", text: ` (${n.agent})` }) : null)),
       collapsible("Pre-existing", it.pre_existing, (p) => el("li", {}, el("span", { class: "anchor", text: anchor(p) + " " }), p.text)),
       collapsible("Checked and clear", it.checked_clear, (c) => el("li", { text: c })),

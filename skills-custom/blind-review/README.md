@@ -1,8 +1,8 @@
 # blind-review
 
 A blind, multi-agent code review for your own branch or a PR. The orchestrating session
-never reads the diff; fresh agents do, a merge agent dedups, and every behaviour claim is
-proven by a test that fails on the change before it is reported. Each review is saved as a round in the branch's history
+never reads the diff; fresh agents do, a merge agent dedups, a verifier re-checks every
+finding against the code, and each review is saved as a round in the branch's history
 under `.git/blind-review/<branch>/`. The result comes back in chat and as Markdown.
 
 Delivering it elsewhere is optional and lives in separate skills:
@@ -32,10 +32,9 @@ If you have a personal `self-review` skill installed, remove it: both answer to
 
 ## What it costs
 
-Under 40 changed lines: 3 or 4 finder agents + merge + proof. Otherwise up to 7 finders
-+ merge + proof. Proof is one prover per behaviour claim or question, run in parallel, plus
-one static checker. bugs, removed, risk and the provers run on the session's model; the
-rest run on Sonnet. Say "all sonnet" or "all opus" to override. Before the team relies on the
+Under 40 changed lines: 3 or 4 finder agents + merge + verify. Otherwise up to 7 finders
++ merge + verify. bugs, removed, risk and verify run on the session's model; the rest run
+on Sonnet. Say "all sonnet" or "all opus" to override. Before the team relies on the
 split, run one diff both ways and compare what each finds; numbers belong here once we
 have them.
 
