@@ -139,8 +139,8 @@ Prompt in `reference/prompts.md`.
 
 Save the round to the branch's history with `save_round.py` (`reference/report.md`). It
 writes `r<N>.json`, the record delivery skills read, and `r<N>.md`. Then relay to the
-user: the verdict line, the findings in full, the open questions, the refuted entries with
-reasons, nit and pre-existing counts, and the path of `r<N>.md`.
+user: the verdict line, the findings in the short `r<N>.md` form, the open questions, the
+refuted entries one line each, nit and pre-existing counts, and the path of `r<N>.md`.
 
 Then stop every agent you started (`TaskStop`) and confirm with `ListAgents`. Reports
 first, then stop: an agent whose report you only have inline takes the rest of it with it.
@@ -151,8 +151,9 @@ In PR mode, remove the worktree unless the user wants it kept for fixing.
 Offer, do not do:
 
 - **Fix** the findings — any agent may fix, including this conversation; fixing is not
-  reviewing. Work "Fix together" entries as one change. `needs decision` and `disputed`
-  entries stop and ask; `confirm first` entries are confirmed before they are fixed.
+  reviewing. Work "Fix together" entries as one change. `decide` entries stop and ask;
+  `skip` entries are left alone unless the user says otherwise. A finding verified only
+  `partly` is confirmed before it is fixed.
 - **Re-review** — run this skill again; it saves the next round, with the prior-findings
   accounting.
 - **Deliver** — `review-to-artifact` publishes the branch's rounds as one shared page where

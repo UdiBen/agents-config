@@ -363,7 +363,9 @@ OUTPUT: write <run>/verified.json, one JSON object, nothing else:
   "fix_together": [{"ids": ["<id>", ...], "note"}],
   "findings":   [{"id", "kind": "BUG|VIOLATION|RISK|MISSING|CONTRACT|SIMPLIFY|EXISTS",
                   "title", "severity": "CRITICAL|HIGH|MEDIUM",
-                  "verdict": "CONFIRMED|PLAUSIBLE", "verified": "<what you checked>",
+                  "summary": "<what goes wrong, and when>",
+                  "verdict": "CONFIRMED|PLAUSIBLE", "verified": "<how you checked>",
+                  "call": "fix|skip|decide", "how": "<the fix, or why skip / what to decide>",
                   "file", "line", "raised_by": ["<agent>", ...],
                   "disputed": "<both positions, or omit>", "from_question": true|omit,
                   "fields": [["Evidence", "..."], ["Trigger", "..."], ["Fix", "..."]]}],
@@ -373,6 +375,18 @@ OUTPUT: write <run>/verified.json, one JSON object, nothing else:
   "pre_existing": [{"file", "line", "text"}],
   "checked_clear": ["<one line each>"]
 }
+The report shows only the short fields, so they must stand alone:
+  title      at most 12 words
+  summary    one sentence, at most 25 words
+  verified   the method, at most 8 words: "traced code", "ran test",
+             "reproduced", "compared with base"
+  how        at most 15 words
+  reason, text, needs, note    at most 20 words each
+Pick `call`:
+  fix     the defect is real and the fix is clear
+  skip    not worth the change; say why in `how`
+  decide  disputed, every CONTRACT, a SIMPLIFY whose Costs is not "nothing",
+          or the fix is a product choice; name the choice in `how`
 `fields` keeps the agent's block lines in order, label and text, exactly as
 written (Evidence, Trigger, Scale, Doctrine, Current, Simpler, Saves, Costs,
 Surface, Producer / consumer, Order, Fix, and the body as "Detail"). A finding

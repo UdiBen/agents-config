@@ -43,23 +43,14 @@ def rounds(hist):
     return [p for _, p in sorted(found)]
 
 
-def field(finding, label):
-    for name, text in finding.get("fields", []):
-        if name.lower() == label.lower():
-            return text.strip()
-    return ""
+CALLS = ["fix", "skip", "decide"]
+VERIFIED = {"CONFIRMED": "yes", "PLAUSIBLE": "partly"}
 
 
 def tag(finding):
-    if finding.get("disputed"):
-        return "disputed"
-    if finding["kind"] == "CONTRACT":
-        return "needs decision"
-    if finding["kind"] == "SIMPLIFY" and field(finding, "Costs").lower().rstrip(".") != "nothing":
-        return "needs decision"
-    if finding.get("verdict") == "PLAUSIBLE":
-        return "confirm first"
-    return "mechanical"
+    if finding.get("disputed") or finding["kind"] == "CONTRACT":
+        return "decide"
+    return finding.get("call") if finding.get("call") in CALLS else "decide"
 
 
 def verdict(findings):
@@ -94,21 +85,20 @@ def to_markdown(rec, prev):
     section("Fix together", [f"- {', '.join(g['ids'])} — {g.get('note', '')}" for g in rec["fix_together"]])
     rows = []
     for f in rec["findings"]:
-        settled = " · settled question" if f.get("from_question") else ""
-        rows += ["", f"### [{f['tag']}] {f['kind']}: {f['title']} ({f['id']}){settled}",
-                 f"File: {f['file']}:{f['line']} · Severity: {f['severity']} · "
-                 f"Verified: {f['verdict']} — {f.get('verified', '')}",
-                 f"Raised by: {', '.join(f.get('raised_by', []))}"]
-        rows += [f"{name}: {text}" for name, text in f.get("fields", [])]
-        if f.get("disputed"):
-            rows.append(f"Disputed: {f['disputed']}")
+        rows += ["", f"### {f['id']} · {f['severity']} · {f['title']}",
+                 f"{f['file']}:{f['line']} · found by: {', '.join(f.get('raised_by', []))}"]
+        if f.get("summary"):
+            rows.append(f.get("summary"))
+        rows += [f"Verified: {VERIFIED.get(f['verdict'], f['verdict'])} — {f.get('verified', '')}",
+                 f"Verdict: {f['tag']} — {f.get('how', '')}"]
     section("Findings", rows)
-    section("Open questions", [f"- {q['file']}:{q['line']} — {q['title']}: {q['text']}"
-                               + (f" Settled by: {q['needs']}" if q.get("needs") else "") for q in rec["questions"]])
-    section("Refuted by verifier", [f"- {r['file']}:{r['line']} — {r['title']}: {r['reason']}" for r in rec["refuted"]])
+    section("Open questions", [f"- {q['file']}:{q['line']} — {q['title']}"
+                               + (f" (settled by: {q['needs']})" if q.get("needs") else "") for q in rec["questions"]])
+    section("Refuted", [f"- {r['file']}:{r['line']} — {r['title']} — {r['reason']}" for r in rec["refuted"]])
     section("Nits", [f"- {n['file']}:{n['line']} — {n['text']} ({n.get('agent', '')})" for n in rec["nits"]])
     section("Pre-existing", [f"- {p['file']}:{p['line']} — {p['text']}" for p in rec["pre_existing"]])
-    section("Checked and clear", [f"- {c}" for c in rec["checked_clear"]])
+    if rec["checked_clear"]:
+        out.extend(["", f"Checked and clear: {len(rec['checked_clear'])} items, listed in r{rec['n']}.json"])
     return "\n".join(out) + "\n"
 
 

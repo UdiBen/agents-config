@@ -9,14 +9,13 @@ the orchestrator copies files and never judges a finding.
 
 ## Tags and verdict
 
-Derived by the script, never by hand:
+The tag is the verifier's `call`, never set by hand:
 
 | Tag | When |
 |---|---|
-| `disputed` | the entry has a `Disputed:` line |
-| `needs decision` | every `CONTRACT:`; a `SIMPLIFY:` whose `Costs:` is not "nothing" |
-| `confirm first` | the verifier said PLAUSIBLE |
-| `mechanical` | everything else: the fix is stated, apply it |
+| `fix` | the defect is real and `how` states the fix |
+| `skip` | not worth the change; `how` says why |
+| `decide` | disputed, every `CONTRACT:`, a costly `SIMPLIFY:`, a product choice, or no call |
 
 Verdict: any CRITICAL → blocked; any HIGH → needs changes; MEDIUM only → ship with nits;
 none → ship. Refuted, pre-existing and question entries carry no tag. Whoever fixes the
@@ -53,8 +52,8 @@ round.
  verdict, verdict_note,
  prior:         [{id, fate: fixed|not_fixed|waived, note}],
  fix_together:  [{ids, note}],
- findings:      [{id, kind, title, severity, verdict, verified, file, line,
-                  raised_by, tag, fields: [[label, text], …],
+ findings:      [{id, kind, title, severity, summary, verdict, verified, call, how,
+                  file, line, raised_by, tag, fields: [[label, text], …],
                   disputed?, from_question?}],
  questions:     [{title, file, line, text, needs?, raised_by}],
  refuted:       [{title, file, line, reason, raised_by}],
@@ -78,6 +77,8 @@ elsewhere, both from `r<N>.json`:
 
 ## Relay to the user
 
-In chat, in this order: the verdict line; the findings, in full; the open questions; the
-refuted entries with their reasons; nits and pre-existing items as counts; the path of
-`r<N>.md`. No praise, and no summary of what the change does: the author already knows.
+In chat, in this order: the verdict line; each finding in the `r<N>.md` form (id,
+severity, title, file, who found it, summary, verified and how, verdict and how); the open
+questions; the refuted entries, one line each; nits and pre-existing items as counts; the
+path of `r<N>.md`. The agents' full write-ups stay in `r<N>.json` for whoever fixes. No
+praise, and no summary of what the change does: the author already knows.
