@@ -26,8 +26,10 @@ sidebar has a copy-prompt button) — this command just automates it and runs th
   way the target is the same PR/branch/range.
 - With `blind-review`, the findings are its latest saved round,
   `.git/blind-review/<branch>/r<N>.json` in the repo's git common dir. Reuse that round if its
-  `head` is the target's current head; otherwise run `blind-review` first. Post its `findings`
-  (the `tag`, `severity` and `verdict` go in the comment body) and its open `questions` as notes.
+  `head` is the target's current head; otherwise run `blind-review` first. Post its `findings`,
+  and its open `questions` as notes. Each finding's body is its `r<N>.md` block: id, severity
+  and `tag` on the first line with the title, then `summary`, `evidence` as a code span,
+  `repro`, `Verified:` and `Verdict:` lines, and who found it. Nothing from `fields`.
   They are already verified, so skip the verification step below for them.
 - Verify every candidate against the real source before keeping it — refute anything you
   can't confirm from the code.

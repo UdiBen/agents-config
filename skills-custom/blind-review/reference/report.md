@@ -52,19 +52,22 @@ round.
  verdict, verdict_note,
  prior:         [{id, fate: fixed|not_fixed|waived, note}],
  fix_together:  [{ids, note}],
- findings:      [{id, kind, title, severity, summary, verdict, verified, call, how,
+ findings:      [{id, kind, title, severity, summary, evidence, repro,
+                  verdict, verified, call, how,
                   file, line, raised_by, tag, fields: [[label, text], …],
                   disputed?, from_question?}],
- questions:     [{title, file, line, text, needs?, raised_by}],
- refuted:       [{title, file, line, reason, raised_by}],
- nits:          [{file, line, text, agent}],
- pre_existing:  [{file, line, text}],
+ questions:     [{id, title, file, line, text, needs?, raised_by}],
+ refuted:       [{id, title, file, line, reason, raised_by}],
+ nits:          [{id, file, line, text, agent}],
+ pre_existing:  [{id, file, line, text}],
  checked_clear: [text],
  batch?}
 ```
 
 A finding that survives from one round to the next keeps its id, so a delivery skill can
-tell a new finding from one that was already reported.
+tell a new finding from one that was already reported. Questions, refuted entries, nits and
+pre-existing items are numbered per round by the script: `Q1`, `X1`, `N1`, `P1`. The user
+refers to any entry by its id, such as "fix r1-1, N3 and N5".
 
 ## Delivery
 
@@ -78,7 +81,8 @@ elsewhere, both from `r<N>.json`:
 ## Relay to the user
 
 In chat, in this order: the verdict line; each finding in the `r<N>.md` form (id,
-severity, title, file, who found it, summary, verified and how, verdict and how); the open
+severity, title, file, who found it, summary, code, repro, verified and how, verdict and
+how); the open
 questions; the refuted entries, one line each; nits and pre-existing items as counts; the
 path of `r<N>.md`. The agents' full write-ups stay in `r<N>.json` for whoever fixes. No
 praise, and no summary of what the change does: the author already knows.

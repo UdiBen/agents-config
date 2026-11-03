@@ -364,6 +364,8 @@ OUTPUT: write <run>/verified.json, one JSON object, nothing else:
   "findings":   [{"id", "kind": "BUG|VIOLATION|RISK|MISSING|CONTRACT|SIMPLIFY|EXISTS",
                   "title", "severity": "CRITICAL|HIGH|MEDIUM",
                   "summary": "<what goes wrong, and when>",
+                  "evidence": "<the one line of code that makes it true>",
+                  "repro": "<input or steps -> the wrong result>",
                   "verdict": "CONFIRMED|PLAUSIBLE", "verified": "<how you checked>",
                   "call": "fix|skip|decide", "how": "<the fix, or why skip / what to decide>",
                   "file", "line", "raised_by": ["<agent>", ...],
@@ -378,6 +380,10 @@ OUTPUT: write <run>/verified.json, one JSON object, nothing else:
 The report shows only the short fields, so they must stand alone:
   title      at most 12 words
   summary    one sentence, at most 25 words
+  evidence   one line of code, quoted exactly from the file; no path
+  repro      one line, at most 25 words: the call, request or state,
+             then "->" and what the user sees; for a non-behaviour
+             finding, the reader or caller it misleads
   verified   the method, at most 8 words: "traced code", "ran test",
              "reproduced", "compared with base"
   how        at most 15 words

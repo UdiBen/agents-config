@@ -45,12 +45,20 @@ def rounds(hist):
 
 CALLS = ["fix", "skip", "decide"]
 VERIFIED = {"CONFIRMED": "yes", "PLAUSIBLE": "partly"}
+LIST_IDS = {"questions": "Q", "refuted": "X", "nits": "N", "pre_existing": "P"}
 
 
 def tag(finding):
     if finding.get("disputed") or finding["kind"] == "CONTRACT":
         return "decide"
     return finding.get("call") if finding.get("call") in CALLS else "decide"
+
+
+def code_span(text):
+    text = text.strip()
+    fence = "``" if "`" in text else "`"
+    pad = " " if fence == "``" else ""
+    return f"{fence}{pad}{text}{pad}{fence}"
 
 
 def verdict(findings):
@@ -88,15 +96,20 @@ def to_markdown(rec, prev):
         rows += ["", f"### {f['id']} · {f['severity']} · {f['title']}",
                  f"{f['file']}:{f['line']} · found by: {', '.join(f.get('raised_by', []))}"]
         if f.get("summary"):
-            rows.append(f.get("summary"))
-        rows += [f"Verified: {VERIFIED.get(f['verdict'], f['verdict'])} — {f.get('verified', '')}",
-                 f"Verdict: {f['tag']} — {f.get('how', '')}"]
+            rows += ["", f["summary"]]
+        rows.append("")
+        if f.get("evidence"):
+            rows.append(f"- Code: {code_span(f['evidence'])}")
+        if f.get("repro"):
+            rows.append(f"- Repro: {f['repro']}")
+        rows += [f"- Verified: {VERIFIED.get(f['verdict'], f['verdict'])} — {f.get('verified', '')}",
+                 f"- Verdict: {f['tag']} — {f.get('how', '')}"]
     section("Findings", rows)
-    section("Open questions", [f"- {q['file']}:{q['line']} — {q['title']}"
+    section("Open questions", [f"- {q['id']} · {q['file']}:{q['line']} — {q['title']}"
                                + (f" (settled by: {q['needs']})" if q.get("needs") else "") for q in rec["questions"]])
-    section("Refuted", [f"- {r['file']}:{r['line']} — {r['title']} — {r['reason']}" for r in rec["refuted"]])
-    section("Nits", [f"- {n['file']}:{n['line']} — {n['text']} ({n.get('agent', '')})" for n in rec["nits"]])
-    section("Pre-existing", [f"- {p['file']}:{p['line']} — {p['text']}" for p in rec["pre_existing"]])
+    section("Refuted", [f"- {r['id']} · {r['file']}:{r['line']} — {r['title']} — {r['reason']}" for r in rec["refuted"]])
+    section("Nits", [f"- {n['id']} · {n['file']}:{n['line']} — {n['text']} ({n.get('agent', '')})" for n in rec["nits"]])
+    section("Pre-existing", [f"- {p['id']} · {p['file']}:{p['line']} — {p['text']}" for p in rec["pre_existing"]])
     if rec["checked_clear"]:
         out.extend(["", f"Checked and clear: {len(rec['checked_clear'])} items, listed in r{rec['n']}.json"])
     return "\n".join(out) + "\n"
@@ -147,6 +160,9 @@ def cmd_save(args):
     }
     for key in ("prior", "fix_together", "questions", "refuted", "nits", "pre_existing", "checked_clear"):
         rec[key] = new.get(key, [])
+    for key, prefix in LIST_IDS.items():
+        for i, item in enumerate(rec[key], 1):
+            item["id"] = f"{prefix}{i}"
     if "batch" in new:
         rec["batch"] = new["batch"]
     hist.mkdir(parents=True, exist_ok=True)
