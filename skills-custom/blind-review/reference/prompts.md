@@ -19,7 +19,8 @@ QUESTION: <the agent's row below, verbatim>
 REACH:    <the agent's reach, verbatim> — read it from the repo root; never trust the
           diff's context lines for anything outside the hunk.
 DOCTRINE: <nearest CLAUDE.md to each changed file, then the repo style guide if any,
-          then <skill dir>/reference/doctrine-lakefs.md>.
+          then <skill dir>/reference/doctrine-lakefs.md>. A repo with no CLAUDE.md
+          (lakeFS OSS) hands over none; say so in the slot.
           Measure the convention in this repo; do not quote remembered counts.
           When two rules collide: correctness > surroundings > prior art >
           everything else. Report the ruling, not the raw finding.

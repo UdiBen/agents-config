@@ -37,7 +37,7 @@ number in the previous round. `N`, `prev.json` and those numbers go into the ver
 ```bash
 python3 -I <skill dir>/scripts/save_round.py save --env <run>/env.sh \
   --roster "<agents run>" --skipped "<agents skipped and why>" --models "<who ran on what>" \
-  --verify-cmd "<the test command the repo's CLAUDE.md names>" [--single-context]
+  --verify-cmd "<the test command the repo's CLAUDE.md names, or empty>" [--single-context]
 ```
 
 It writes `HIST_DIR/r<N>.json` and `HIST_DIR/r<N>.md`, and never overwrites an earlier
