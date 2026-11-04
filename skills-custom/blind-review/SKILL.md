@@ -4,12 +4,13 @@ description: >-
   Blind, multi-agent code review of a changeset — your own branch before you push, or a
   GitHub PR. Use when asked to "self-review", "review my branch", "review before I push",
   "sanity-check this before the PR", "review PR #N", "publish the review", "share the
-  review", or as the QA gate before opening or merging a PR. The orchestrator never reads the diff: it snapshots it, dispatches fresh
-  agents (bugs, removed behaviour, tests, risk, conventions, lean, intent/cross-repo),
-  merges, verifies with a recall-biased three-state verdict, and saves the round to the
-  branch's history so a re-review accounts for every earlier finding. It asks first where
-  the results go: the terminal, a shared Artifact page, or difftool comments. Read-only toward the reviewed repo: never commits, pushes, posts to GitHub or edits
-  tracked files.
+  review", or as the QA gate before opening or merging a PR. The orchestrator never reads
+  the diff: it snapshots it, dispatches fresh agents (bugs, removed behaviour, tests, risk,
+  conventions, lean, intent/cross-repo), merges, verifies with a recall-biased three-state
+  verdict, and saves the round to the branch's history so a re-review accounts for every
+  earlier finding. It asks first where the results go: the terminal, a shared Artifact
+  page, or difftool comments. Read-only toward the reviewed repo: never commits, pushes,
+  posts to GitHub or edits tracked files.
 ---
 
 # blind-review

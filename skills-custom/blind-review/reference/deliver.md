@@ -75,5 +75,7 @@ comments they agree with from the browser.
    `-q` and keep the ids it prints.
 5. **Point the browser.** `difftool review goto --review <ref> --comment <first id>`.
 
+No `difftool` on the PATH: say so, and deliver to the terminal instead.
+
 Give the user the review URL, and remind them the comments are local until they promote
 them.
