@@ -61,7 +61,8 @@ correctly.
   you are not equipped to overrule an agent that did. Dispute in writing (`Disputed:`).
 - **Read-only toward the reviewed repo.** No commit, push, checkout, stash, add, reset; no
   GitHub comments, approvals or labels; no edits to tracked files. Allowed: `git fetch`;
-  the run directory, including a detached PR worktree inside it; and the round history
+  the run directory, including the detached worktree inside it; the snapshot's commit,
+  made through a throwaway index and on no branch; and the round history
   under the repository's git directory (`.git/blind-review/<branch>/`). The Artifact page
   and difftool comments are private to the user and are not posts to GitHub.
 
@@ -166,9 +167,10 @@ writes `r<N>.json`, the record every destination reads, and `r<N>.md`.
 
 Deliver the round to each destination chosen at Step 0, following `reference/deliver.md`.
 
-Then stop every agent you started (`TaskStop`) and confirm with `ListAgents`. Reports
-first, then stop: an agent whose report you only have inline takes the rest of it with it.
-In PR mode, remove the worktree unless the user wants it kept for fixing.
+Then stop every agent you started with `TaskStop` and confirm with `ListAgents`; skip
+this when the session has neither tool. Reports first, then stop: an agent whose report you
+only have inline takes the rest of it with it. Remove the worktree; in PR mode keep it if
+the user wants it for fixing.
 
 ## After the report
 

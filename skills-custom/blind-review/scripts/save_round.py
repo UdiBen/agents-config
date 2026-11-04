@@ -92,7 +92,7 @@ def disputed_rows(d):
 
 
 def verdict(findings):
-    present = {f["severity"] for f in findings}
+    present = {f["severity"] for f in findings if f["tag"] != "skip"}
     if "CRITICAL" in present:
         return "blocked"
     if "HIGH" in present:

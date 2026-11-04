@@ -18,8 +18,8 @@ The tag is the verifier's `call`, never set by hand:
 | `skip` | not worth the change; `how` says why |
 | `decide` | disputed, every `CONTRACT:`, a costly `SIMPLIFY:`, a product choice, or no call |
 
-Verdict: any CRITICAL → blocked; any HIGH → needs changes; MEDIUM only → ship with nits;
-none → ship. Refuted, pre-existing and question entries carry no tag. Whoever fixes the
+Verdict, counting only `fix` and `decide` findings: any CRITICAL → blocked; any HIGH →
+needs changes; MEDIUM only → ship with nits; none → ship. Refuted, pre-existing and question entries carry no tag. Whoever fixes the
 findings does not act on them unless the user says so.
 
 ## Before the verifier
