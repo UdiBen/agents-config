@@ -7,7 +7,7 @@ the snapshot, the claims or any changed file yourself.
 
 | Target | How the user says it | Base | Code the agents read |
 |---|---|---|---|
-| Current branch (default) | nothing, "my branch", "before I push" | the branch's open PR base if one exists, else the default branch | the working tree: committed, uncommitted and untracked |
+| Current branch (default) | nothing, "my branch", "before I push" | the branch's open PR base if one exists, else the default branch | a detached worktree at a commit of the working tree: committed, uncommitted and untracked |
 | Stacked branch | `--base <branch>` | that branch | same |
 | PR | a number, `owner/repo#N`, or a URL | the PR's base, or `--base` | a detached worktree at the PR head, inside the run directory |
 | Batch | several of the above | each its own | each its own run |
@@ -46,11 +46,14 @@ rule in `SKILL.md` reads these and nothing else.
 
 If changed lines is 0, stop and say there is nothing to review.
 
-## PR worktree
+## Worktree
 
-In PR mode the agents' repo root is `<run>/worktree`, a detached worktree at the PR head.
-Remove it after the report with `git worktree remove --force <run>/worktree`, unless the
-user wants it kept for fixing.
+The agents' repo root is `<run>/worktree`, a detached worktree. In PR mode it is at the PR
+head. In branch mode it is at a commit of the working tree as snapshotted, made through a
+throwaway index and on no branch, so editing during the review does not move the code
+under the agents. Remove it after the report with
+`git worktree remove --force <run>/worktree`; in PR mode keep it if the user wants it for
+fixing.
 
 **A stacked PR whose base is still the default branch** carries its parent's work in the
 diff. The intent agent reports "the diff holds more than this change"; if the user

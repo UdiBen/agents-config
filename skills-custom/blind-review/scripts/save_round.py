@@ -9,7 +9,7 @@
       Read RUN/verified.json, derive tags and the verdict, and write HIST_DIR/r<N>.json and
       HIST_DIR/r<N>.md. Prints both paths.
 
-A round record is the contract for delivery skills (review-to-artifact, review-to-difftool):
+A round record is the contract every destination in reference/deliver.md reads:
 {repo, slug, n, date, target, head, base_ref, base, tree, roster, skipped, models,
  verify_cmd, single_context, verdict, verdict_note, prior, fix_together, findings,
  questions, refuted, nits, pre_existing, checked_clear[, batch]}.
@@ -72,7 +72,7 @@ def number(rec):
     count = 0
     for f in rec["findings"]:
         count += 1
-        f["key"] = f.get("key") or f.get("id") or f"r{rec['n']}-{count}"
+        f["key"] = f.get("key") or f"r{rec['n']}-{count}"
         f["id"] = count
     for key in LISTS:
         for item in rec[key]:
@@ -92,7 +92,7 @@ def disputed_rows(d):
 
 
 def verdict(findings):
-    present = {f["severity"] for f in findings}
+    present = {f["severity"] for f in findings if f["tag"] != "skip"}
     if "CRITICAL" in present:
         return "blocked"
     if "HIGH" in present:

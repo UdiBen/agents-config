@@ -3,11 +3,12 @@
 A blind, multi-agent code review for your own branch or a PR. The orchestrating session
 never reads the diff; fresh agents do, a merge agent dedups, a verifier re-checks every
 finding against the code, and each review is saved as a round in the branch's history
-under `.git/blind-review/<branch>/`. The result comes back in chat and as Markdown.
+under `.git/blind-review/<branch>/`.
 
-Delivering it elsewhere is optional and lives in separate skills:
-- `review-to-artifact`: one shared page per branch, where teammates tick findings resolved
-- `review-to-difftool`: inline comments on a difftool review
+It asks first where the results go, and you can pick several:
+- Terminal: the full report in chat, also saved as Markdown
+- Artifact: one shared page per branch, where teammates tick findings resolved
+- Difftool: inline comments on a local difftool review
 
 ## Install
 
@@ -40,9 +41,10 @@ have them.
 
 ## Why blind
 
-You already believe your code is correct, so what you read is your intention, not the
-diff. The orchestrator therefore never sees the code; it moves files between agents that
-have no idea why the change exists. The only agent that hears what the change is *for* is
+Every reviewer assumes the code is broken and sets out to prove it, whoever wrote it.
+Knowing why a change exists, as its author or from its PR description, makes it read as
+intended. The orchestrator therefore never sees the code; it moves files between agents
+that have no idea why the change exists. The only agent that hears what the change is *for* is
 the intent agent, and it hears it as a claim to test.
 
 ## Doctrine
