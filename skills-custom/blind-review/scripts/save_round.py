@@ -72,7 +72,7 @@ def number(rec):
     count = 0
     for f in rec["findings"]:
         count += 1
-        f["key"] = f.get("key") or f.get("id") or f"r{rec['n']}-{count}"
+        f["key"] = f.get("key") or f"r{rec['n']}-{count}"
         f["id"] = count
     for key in LISTS:
         for item in rec[key]:
