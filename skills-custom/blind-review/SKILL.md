@@ -3,30 +3,32 @@ name: blind-review
 description: >-
   Blind, multi-agent code review of a changeset — your own branch before you push, or a
   GitHub PR. Use when asked to "self-review", "review my branch", "review before I push",
-  "sanity-check this before the PR", "review PR #N", or as the QA gate before opening or
-  merging a PR. The orchestrator never reads the diff: it snapshots it, dispatches fresh
+  "sanity-check this before the PR", "review PR #N", "publish the review", "share the
+  review", or as the QA gate before opening or merging a PR. The orchestrator never reads the diff: it snapshots it, dispatches fresh
   agents (bugs, removed behaviour, tests, risk, conventions, lean, intent/cross-repo),
   merges, verifies with a recall-biased three-state verdict, and saves the round to the
-  branch's history so a re-review accounts for every earlier finding. Results go to chat
-  and Markdown; review-to-artifact and review-to-difftool deliver them elsewhere.
-  Read-only toward the reviewed repo: never commits, pushes, posts to GitHub or edits
+  branch's history so a re-review accounts for every earlier finding. It asks first where
+  the results go: the terminal, a shared Artifact page, or difftool comments. Read-only toward the reviewed repo: never commits, pushes, posts to GitHub or edits
   tracked files.
 ---
 
 # blind-review
 
 Reviewing a changeset — **yours** (the default) or **someone else's PR** — with agents that
-have never seen the code written. One pipeline, five steps: **snapshot → dispatch →
-merge → verify → save**. The reference files and scripts carry the details; this file
-is the contract. Delivering the result anywhere other than chat is a separate skill's job.
+have never seen the code written. One pipeline: **destination → snapshot → dispatch →
+merge → verify → save → deliver**. The reference files and scripts carry the details;
+this file is the contract.
 
 | File | What it holds |
 |---|---|
 | `scripts/snapshot.sh` | Resolves the target and writes the run directory: snapshot, claims, `env.sh` |
 | `scripts/save_round.py` | Reads the previous round, and saves the next one as `r<N>.json` and `r<N>.md` |
+| `scripts/build_page.py` | Builds the shared review page from every round of the branch |
 | `reference/changeset.md` | Targets, the run directory, stacked bases, batches |
 | `reference/prompts.md` | The seven agent rows, the dispatch template, the merge and verify prompts |
-| `reference/report.md` | Round history, tags, verdict, the round record, delivery |
+| `reference/report.md` | Round history, tags, verdict, the round record |
+| `reference/deliver.md` | The terminal relay, the Artifact page, difftool comments |
+| `reference/page.html` | The review page template |
 | `reference/doctrine-lakefs.md` | Treeverse/lakeFS doctrine handed to agents (Go, layering, cross-repo, Enterprise) |
 
 ## Why the orchestrator is blind
@@ -56,7 +58,23 @@ nothing.
 - **Read-only toward the reviewed repo.** No commit, push, checkout, stash, add, reset; no
   GitHub comments, approvals or labels; no edits to tracked files. Allowed: `git fetch`;
   the run directory, including a detached PR worktree inside it; and the round history
-  under the repository's git directory (`.git/blind-review/<branch>/`).
+  under the repository's git directory (`.git/blind-review/<branch>/`). The Artifact page
+  and difftool comments are private to the user and are not posts to GitHub.
+
+## Step 0 — Destination
+
+Ask where the results go, with `AskUserQuestion`, `multiSelect: true`, before anything
+else:
+
+| Option | Delivers |
+|---|---|
+| Terminal | The full report in chat |
+| Artifact | One shared page per branch, where the team ticks findings resolved |
+| Difftool | Inline comments on a local difftool review |
+
+Skip the question when the request already names a destination ("review PR 4331 to
+difftool", "review and publish"). Chat always gets the verdict line and a link for each
+other destination.
 
 ## Step 1 — Snapshot
 
@@ -138,9 +156,11 @@ Prompt in `reference/prompts.md`.
 ## Step 5 — Save
 
 Save the round to the branch's history with `save_round.py` (`reference/report.md`). It
-writes `r<N>.json`, the record delivery skills read, and `r<N>.md`. Then relay to the
-user: the verdict line, the findings in the short `r<N>.md` form, the open questions, the
-refuted entries one line each, nit and pre-existing counts, and the path of `r<N>.md`.
+writes `r<N>.json`, the record every destination reads, and `r<N>.md`.
+
+## Step 6 — Deliver
+
+Deliver the round to each destination chosen at Step 0, following `reference/deliver.md`.
 
 Then stop every agent you started (`TaskStop`) and confirm with `ListAgents`. Reports
 first, then stop: an agent whose report you only have inline takes the rest of it with it.
@@ -156,9 +176,8 @@ Offer, do not do:
   `partly` is confirmed before it is fixed.
 - **Re-review** — run this skill again; it saves the next round, with the prior-findings
   accounting.
-- **Deliver** — `review-to-artifact` publishes the branch's rounds as one shared page where
-  the team ticks findings resolved; `review-to-difftool` posts them as inline comments.
-  Both read `r<N>.json` and are optional.
+- **Deliver elsewhere** — any destination not chosen at Step 0, from the saved round,
+  without reviewing again.
 - **PR mode:** post selected findings as PR comments — draft first, post only on an
   explicit yes.
 

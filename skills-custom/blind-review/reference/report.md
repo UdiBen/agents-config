@@ -5,7 +5,8 @@ Each review of a branch is a round. Rounds are kept in the branch's history dire
 directory, so every worktree of the repository sees the same history and nothing appears
 in `git status`. A local review and a later PR review of the same branch share one
 history. `scripts/save_round.py` writes each round and derives its tags and verdict, so
-the orchestrator copies files and never judges a finding.
+the orchestrator copies files and never judges a finding. `reference/deliver.md` delivers
+a saved round to the terminal, an Artifact page or difftool.
 
 ## Tags and verdict
 
@@ -44,7 +45,7 @@ round.
 
 ## The round record
 
-`r<N>.json` is the contract delivery skills read:
+`r<N>.json` is the contract every destination reads:
 
 ```
 {repo, slug, n, date, target, head, base_ref, base, tree,
@@ -67,23 +68,5 @@ round.
 The script numbers every entry of a round from 1, shown as `#1`: findings in severity
 order, then questions, refuted entries, nits and pre-existing items. The user refers to any
 entry by that number, such as "fix 1, 7 and 9". Numbers restart each round. A finding that
-survives from one round to the next keeps its `key`, so a delivery skill can tell a new
+survives from one round to the next keeps its `key`, so the review page can tell a new
 finding from one that was already reported; the report never shows the key.
-
-## Delivery
-
-The round's Markdown and the chat relay are the default. Two optional skills deliver
-elsewhere, both from `r<N>.json`:
-
-- `review-to-artifact` publishes every round of the branch as one shared page where the
-  team ticks findings resolved.
-- `review-to-difftool` posts the findings as inline comments on a difftool review.
-
-## Relay to the user
-
-In chat, in this order: the verdict line; each finding in the `r<N>.md` form (number,
-severity, title, file, who found it, summary, code, repro, verified and how, both sides of
-a dispute, verdict and how); the open
-questions; the refuted entries, one line each; nits and pre-existing items as counts; the
-path of `r<N>.md`. The agents' full write-ups stay in `r<N>.json` for whoever fixes. No
-praise, and no summary of what the change does: the author already knows.

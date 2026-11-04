@@ -3,11 +3,12 @@
 A blind, multi-agent code review for your own branch or a PR. The orchestrating session
 never reads the diff; fresh agents do, a merge agent dedups, a verifier re-checks every
 finding against the code, and each review is saved as a round in the branch's history
-under `.git/blind-review/<branch>/`. The result comes back in chat and as Markdown.
+under `.git/blind-review/<branch>/`.
 
-Delivering it elsewhere is optional and lives in separate skills:
-- `review-to-artifact`: one shared page per branch, where teammates tick findings resolved
-- `review-to-difftool`: inline comments on a difftool review
+It asks first where the results go, and you can pick several:
+- Terminal: the full report in chat, also saved as Markdown
+- Artifact: one shared page per branch, where teammates tick findings resolved
+- Difftool: inline comments on a local difftool review
 
 ## Install
 

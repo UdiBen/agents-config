@@ -9,7 +9,7 @@
       Read RUN/verified.json, derive tags and the verdict, and write HIST_DIR/r<N>.json and
       HIST_DIR/r<N>.md. Prints both paths.
 
-A round record is the contract for delivery skills (review-to-artifact, review-to-difftool):
+A round record is the contract every destination in reference/deliver.md reads:
 {repo, slug, n, date, target, head, base_ref, base, tree, roster, skipped, models,
  verify_cmd, single_context, verdict, verdict_note, prior, fix_together, findings,
  questions, refuted, nits, pre_existing, checked_clear[, batch]}.
