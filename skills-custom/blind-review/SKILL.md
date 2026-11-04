@@ -129,7 +129,7 @@ finding against the code with a **three-state verdict** (`CONFIRMED` / `PLAUSIBL
 elsewhere. It is **recall-biased**: a realistic trigger is PLAUSIBLE, and REFUTED needs
 proof constructible from the code. Refuted entries are **kept with their reason**, never
 deleted. On a re-review it also accounts for every prior finding as fixed, not fixed or
-waived, keeping the same id for a finding that is still present. It also settles every
+waived, keeping the same key for a finding that is still present. It also settles every
 question it can from the code, turning each into a finding or a refuted entry; only a
 question the code cannot answer stays open, saying what would answer it. It writes
 `verified.json`.

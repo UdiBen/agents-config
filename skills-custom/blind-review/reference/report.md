@@ -28,8 +28,8 @@ python3 -I <skill dir>/scripts/save_round.py prev --env <run>/env.sh
 ```
 
 It writes `<run>/prev.json`, the latest round's findings (`[]` on a first review), and
-prints the next round number `N`. Ask the user which earlier findings they waive. `N`,
-`prev.json` and the waived ids go into the verify prompt.
+prints the next round number `N`. Ask the user which earlier findings they waive, by their
+number in the previous round. `N`, `prev.json` and those numbers go into the verify prompt.
 
 ## After the verifier
 
@@ -50,12 +50,12 @@ round.
 {repo, slug, n, date, target, head, base_ref, base, tree,
  roster, skipped, models, verify_cmd, single_context,
  verdict, verdict_note,
- prior:         [{id, fate: fixed|not_fixed|waived, note}],
+ prior:         [{key, fate: fixed|not_fixed|waived, note}],
  fix_together:  [{ids, note}],
- findings:      [{id, kind, title, severity, summary, evidence, repro,
+ findings:      [{id, key, kind, title, severity, summary, evidence, repro,
                   verdict, verified, call, how,
                   file, line, raised_by, tag, fields: [[label, text], …],
-                  disputed?, from_question?}],
+                  disputed?: {for, against}, from_question?}],
  questions:     [{id, title, file, line, text, needs?, raised_by}],
  refuted:       [{id, title, file, line, reason, raised_by}],
  nits:          [{id, file, line, text, agent}],
@@ -64,10 +64,11 @@ round.
  batch?}
 ```
 
-A finding that survives from one round to the next keeps its id, so a delivery skill can
-tell a new finding from one that was already reported. Questions, refuted entries, nits and
-pre-existing items are numbered per round by the script: `Q1`, `X1`, `N1`, `P1`. The user
-refers to any entry by its id, such as "fix r1-1, N3 and N5".
+The script numbers every entry of a round from 1, shown as `#1`: findings in severity
+order, then questions, refuted entries, nits and pre-existing items. The user refers to any
+entry by that number, such as "fix 1, 7 and 9". Numbers restart each round. A finding that
+survives from one round to the next keeps its `key`, so a delivery skill can tell a new
+finding from one that was already reported; the report never shows the key.
 
 ## Delivery
 
@@ -80,9 +81,9 @@ elsewhere, both from `r<N>.json`:
 
 ## Relay to the user
 
-In chat, in this order: the verdict line; each finding in the `r<N>.md` form (id,
-severity, title, file, who found it, summary, code, repro, verified and how, verdict and
-how); the open
+In chat, in this order: the verdict line; each finding in the `r<N>.md` form (number,
+severity, title, file, who found it, summary, code, repro, verified and how, both sides of
+a dispute, verdict and how); the open
 questions; the refuted entries, one line each; nits and pre-existing items as counts; the
 path of `r<N>.md`. The agents' full write-ups stay in `r<N>.json` for whoever fixes. No
 praise, and no summary of what the change does: the author already knows.

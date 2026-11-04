@@ -276,7 +276,8 @@ TASK:
 - The bar. An entry stays a finding only if a reviewer would ask for the change
   before approving. Move every other entry to the nits, marked `(demoted)`.
 - Contradictions. When one agent asks for what another rejects, or clears what
-  another flags, write one entry with a `Disputed:` line giving both positions.
+  another flags, write one entry with two lines: `Disputed for:` why it is a
+  problem, and `Disputed against:` why it is not, each at most 15 words.
 - Questions stay questions. Never promote a QUESTION block to a finding; the
   verifier settles them.
 - Nothing else leaves. Every finding is in the list, merged into an entry, or
@@ -305,7 +306,7 @@ code or the review. Do not feel pressure to confirm — or to reject.
 INPUT:  <run>/merged.md, the snapshot <SNAP>  (repo root: <AGENT_ROOT>,
         base commit: <BASE>)
         <re-review only: the previous round's findings, <run>/prev.json;
-        the user's waived list: <ids or "none">>
+        the user's waived list: <their numbers in prev.json, or "none">>
 
 For each entry under "## Findings", answer three questions from the code and
 give one verdict:
@@ -348,20 +349,21 @@ Judge each entry on its own; one verdict must not sway another. Re-derive
 every path:line with `grep -n` on the file in the repo root; no anchor may
 exceed the file's line count.
 
-Ids. A finding that is the same problem as one in prev.json keeps that id. Every
-other finding gets `r<N>-<k>`, numbered from 1 in severity order.
+Keys. A finding that is the same problem as one in prev.json keeps its `key`.
+Every other finding gets the key `r<N>-<k>`, numbered from 1 in severity order.
+Write no `id`; the save script numbers every entry for the report.
 
 Re-review only. Walk every finding in prev.json and state its fate against the
 current code, not against a commit message: `fixed` (how), `not_fixed` (still
-fails because …), or `waived` (only if its id is on the user's waived list).
-A not_fixed finding also appears in "findings" under its old id.
+fails because …), or `waived` (only if its `id` in prev.json is on the user's
+waived list). A not_fixed finding also appears in "findings" under its old key.
 
 OUTPUT: write <run>/verified.json, one JSON object, nothing else:
 {
   "verdict_note": "<one line on the overall state>",
-  "prior":      [{"id", "fate": "fixed|not_fixed|waived", "note"}],
-  "fix_together": [{"ids": ["<id>", ...], "note"}],
-  "findings":   [{"id", "kind": "BUG|VIOLATION|RISK|MISSING|CONTRACT|SIMPLIFY|EXISTS",
+  "prior":      [{"key", "fate": "fixed|not_fixed|waived", "note"}],
+  "fix_together": [{"keys": ["<key>", ...], "note"}],
+  "findings":   [{"key", "kind": "BUG|VIOLATION|RISK|MISSING|CONTRACT|SIMPLIFY|EXISTS",
                   "title", "severity": "CRITICAL|HIGH|MEDIUM",
                   "summary": "<what goes wrong, and when>",
                   "evidence": "<the one line of code that makes it true>",
@@ -369,7 +371,8 @@ OUTPUT: write <run>/verified.json, one JSON object, nothing else:
                   "verdict": "CONFIRMED|PLAUSIBLE", "verified": "<how you checked>",
                   "call": "fix|skip|decide", "how": "<the fix, or why skip / what to decide>",
                   "file", "line", "raised_by": ["<agent>", ...],
-                  "disputed": "<both positions, or omit>", "from_question": true|omit,
+                  "disputed": {"for": "<why it is a problem>", "against": "<why it is not>"} | omit,
+                  "from_question": true|omit,
                   "fields": [["Evidence", "..."], ["Trigger", "..."], ["Fix", "..."]]}],
   "questions":  [{"title", "file", "line", "text", "needs", "raised_by": [...]}],
   "refuted":    [{"title", "file", "line", "reason", "raised_by": [...]}],
@@ -387,6 +390,7 @@ The report shows only the short fields, so they must stand alone:
   verified   the method, at most 8 words: "traced code", "ran test",
              "reproduced", "compared with base"
   how        at most 15 words
+  disputed   `for` and `against` at most 15 words each, one plain claim apiece
   reason, text, needs, note    at most 20 words each
 Pick `call`:
   fix     the defect is real and the fix is clear

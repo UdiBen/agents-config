@@ -55,8 +55,8 @@ Give the user the link. The page is private until they share it.
 ## What the page keeps
 
 The `resolved` collection in the page's store is its only shared state: one document per
-ticked finding id, `{resolved: true, at}`. It survives every republish. A finding that was
-ticked, then reported again by a later round under the same id, is shown unfolded with a
+ticked finding key, `{resolved: true, at}`. It survives every republish. A finding that was
+ticked, then reported again by a later round under the same key, is shown unfolded with a
 "ticked resolved, still present" mark until someone ticks it again. Viewers who cannot
 write the store tick in their own browser only, and the page says so.
 

@@ -141,6 +141,9 @@ footer { font-size: .85rem; color: var(--muted); display: grid; gap: 4px; }
   };
   const sentence = (t) => /[.?!]$/.test(t) ? t + " " : t + ". ";
   const anchor = (o) => o.file ? `${o.file}${o.line ? ":" + o.line : ""}` : "";
+  const fkey = (f) => f.key || f.id;
+  const num = (id) => typeof id === "number" ? "#" + id : String(id ?? "");
+  const tagged = (o) => o.id != null ? num(o.id) + " · " + anchor(o) + " " : anchor(o) + " ";
   const sevColor = { CRITICAL: "var(--crit)", HIGH: "var(--high)", MEDIUM: "var(--med)" };
 
   const readLocal = () => { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}"); } catch { return {}; } };
@@ -148,13 +151,13 @@ footer { font-size: .85rem; color: var(--muted); display: grid; gap: 4px; }
 
   // A finding ticked before this round yet reported again is still present.
   function reopened(f, it) {
-    const r = resolved[f.id];
+    const r = resolved[fkey(f)];
     const prev = iters[iters.indexOf(it) - 1];
-    return !!(r && r.resolved && r.at && r.at < it.date && prev && prev.findings.some((x) => x.id === f.id));
+    return !!(r && r.resolved && r.at && r.at < it.date && prev && prev.findings.some((x) => fkey(x) === fkey(f)));
   }
 
   function isResolved(f, it) {
-    const r = resolved[f.id];
+    const r = resolved[fkey(f)];
     return !!(r && r.resolved) && !reopened(f, it);
   }
 
@@ -185,9 +188,9 @@ footer { font-size: .85rem; color: var(--muted); display: grid; gap: 4px; }
 
   function findingCard(f, it) {
     const done = isResolved(f, it);
-    const box = el("input", { type: "checkbox", id: "res-" + f.id, "aria-label": "Mark resolved: " + f.title });
+    const box = el("input", { type: "checkbox", id: "res-" + fkey(f), "aria-label": "Mark resolved: " + f.title });
     box.checked = done;
-    box.addEventListener("change", () => toggle(f.id, box.checked));
+    box.addEventListener("change", () => toggle(fkey(f), box.checked));
     const chips = el("div", { class: "chips" },
       el("span", { class: "chip sev", text: f.severity }),
       el("span", { class: "chip", text: f.kind }),
@@ -196,14 +199,17 @@ footer { font-size: .85rem; color: var(--muted); display: grid; gap: 4px; }
       reopened(f, it) ? el("span", { class: "chip reopened", text: "ticked resolved, still present" }) : null,
       f.from_question ? el("span", { class: "chip", text: "settled question" }) : null,
       el("span", { class: "anchor", text: anchor(f) }),
-      el("span", { class: "anchor", text: f.id }));
+      el("span", { class: "anchor", text: num(f.id) }));
     const dl = el("dl");
     for (const [k, v] of f.fields || []) dl.append(el("dt", { text: k }), el("dd", { text: v }));
     if (f.verified) dl.append(el("dt", { text: "Verified" }), el("dd", { text: f.verified }));
-    if (f.disputed) dl.append(el("dt", { text: "Disputed" }), el("dd", { text: f.disputed }));
+    if (f.disputed && typeof f.disputed === "object") dl.append(
+      el("dt", { text: "Disputed for" }), el("dd", { text: f.disputed.for || "" }),
+      el("dt", { text: "Disputed against" }), el("dd", { text: f.disputed.against || "" }));
+    else if (f.disputed) dl.append(el("dt", { text: "Disputed" }), el("dd", { text: f.disputed }));
     if ((f.raised_by || []).length) dl.append(el("dt", { text: "Raised by" }), el("dd", { text: f.raised_by.join(", ") }));
     return el("article", { class: "finding" + (done ? " resolved" : ""), "data-sev": f.severity },
-      el("div", { class: "fhead" }, box, el("label", { class: "ftitle", for: "res-" + f.id, text: f.title }), chips),
+      el("div", { class: "fhead" }, box, el("label", { class: "ftitle", for: "res-" + fkey(f), text: f.title }), chips),
       el("div", { class: "fbody" }, dl));
   }
 
@@ -256,15 +262,18 @@ footer { font-size: .85rem; color: var(--muted); display: grid; gap: 4px; }
     if (it.single_context) main.append(el("div", { class: "callout", text: "Single-context review: one agent read and judged the diff, so the bias this skill exists to remove was not removed." }));
 
     if ((it.prior || []).length) {
-      const titles = Object.fromEntries((prevIt ? prevIt.findings : []).map((f) => [f.id, f.title]));
+      const before = Object.fromEntries((prevIt ? prevIt.findings : []).map((f) => [fkey(f), f]));
       main.append(el("section", {}, el("h2", { text: `Prior findings (vs r${it.n - 1})` }),
-        list(it.prior, (p) => el("li", {}, el("span", { class: "fate fate-" + p.fate, text: p.fate.replace("_", " ") }),
-          el("span", { class: "anchor", text: p.id + " " }), titles[p.id] ? `${titles[p.id]} — ` : "", p.note || ""))));
+        list(it.prior, (p) => {
+          const was = before[p.key || p.id];
+          return el("li", {}, el("span", { class: "fate fate-" + p.fate, text: p.fate.replace("_", " ") }),
+            el("span", { class: "anchor", text: num(was ? was.id : p.key || p.id) + " " }), was ? `${was.title} — ` : "", p.note || "");
+        })));
     }
     if (it.batch) main.append(el("section", {}, el("h2", { text: "Batch" }), el("div", { class: "callout", text: typeof it.batch === "string" ? it.batch : JSON.stringify(it.batch, null, 2) })));
     if ((it.fix_together || []).length) {
       main.append(el("section", {}, el("h2", { text: "Fix together" }),
-        el("div", { class: "callout" }, ...it.fix_together.map((g) => el("div", {}, el("span", { class: "mono", text: g.ids.join(" + ") + " " }), g.note || "")))));
+        el("div", { class: "callout" }, ...it.fix_together.map((g) => el("div", {}, el("span", { class: "mono", text: g.ids.map(num).join(" + ") + " " }), g.note || "")))));
     }
     const fs = el("section", {}, el("h2", { text: "Findings" }));
     if (!it.findings.length) fs.append(el("p", { class: "empty", text: "No findings cleared the bar." }));
@@ -272,11 +281,11 @@ footer { font-size: .85rem; color: var(--muted); display: grid; gap: 4px; }
     main.append(fs);
 
     for (const node of [
-      collapsible("Open questions", it.questions, (q) => el("li", {}, el("span", { class: "anchor", text: anchor(q) + " " }), el("strong", { text: sentence(q.title) }), q.text,
+      collapsible("Open questions", it.questions, (q) => el("li", {}, el("span", { class: "anchor", text: tagged(q) }), el("strong", { text: sentence(q.title) }), q.text,
         q.needs ? el("div", { class: "muted", text: "Settled by: " + q.needs }) : null), true),
-      collapsible("Refuted by verifier", it.refuted, (r) => el("li", {}, el("span", { class: "anchor", text: anchor(r) + " " }), el("strong", { text: sentence(r.title) }), r.reason)),
-      collapsible("Nits", it.nits, (n) => el("li", {}, el("span", { class: "anchor", text: anchor(n) + " " }), n.text, n.agent ? el("span", { class: "muted", text: ` (${n.agent})` }) : null)),
-      collapsible("Pre-existing", it.pre_existing, (p) => el("li", {}, el("span", { class: "anchor", text: anchor(p) + " " }), p.text)),
+      collapsible("Refuted by verifier", it.refuted, (r) => el("li", {}, el("span", { class: "anchor", text: tagged(r) }), el("strong", { text: sentence(r.title) }), r.reason)),
+      collapsible("Nits", it.nits, (n) => el("li", {}, el("span", { class: "anchor", text: tagged(n) }), n.text, n.agent ? el("span", { class: "muted", text: ` (${n.agent})` }) : null)),
+      collapsible("Pre-existing", it.pre_existing, (p) => el("li", {}, el("span", { class: "anchor", text: tagged(p) }), p.text)),
       collapsible("Checked and clear", it.checked_clear, (c) => el("li", { text: c })),
     ]) if (node) main.append(node);
 

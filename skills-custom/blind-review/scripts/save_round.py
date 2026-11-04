@@ -45,7 +45,7 @@ def rounds(hist):
 
 CALLS = ["fix", "skip", "decide"]
 VERIFIED = {"CONFIRMED": "yes", "PLAUSIBLE": "partly"}
-LIST_IDS = {"questions": "Q", "refuted": "X", "nits": "N", "pre_existing": "P"}
+LISTS = ["questions", "refuted", "nits", "pre_existing"]
 
 
 def tag(finding):
@@ -61,6 +61,36 @@ def code_span(text):
     return f"{fence}{pad}{text}{pad}{fence}"
 
 
+def ref(entry_id, n=None):
+    if not isinstance(entry_id, int):
+        return str(entry_id)
+    return f"r{n} #{entry_id}" if n else f"#{entry_id}"
+
+
+def number(rec):
+    """Number every entry from 1 in report order; a finding keeps its key across rounds."""
+    count = 0
+    for f in rec["findings"]:
+        count += 1
+        f["key"] = f.get("key") or f.get("id") or f"r{rec['n']}-{count}"
+        f["id"] = count
+    for key in LISTS:
+        for item in rec[key]:
+            count += 1
+            item["id"] = count
+    ids = {f["key"]: f["id"] for f in rec["findings"]}
+    for g in rec["fix_together"]:
+        g["ids"] = [ids.get(k, k) for k in g.pop("keys", g.get("ids", []))]
+    for p in rec["prior"]:
+        p["key"] = p.get("key") or p.pop("id", "")
+
+
+def disputed_rows(d):
+    if isinstance(d, dict):
+        return ["- Disputed:", f"  - For: {d.get('for', '')}", f"  - Against: {d.get('against', '')}"]
+    return [f"- Disputed: {d}"] if d else []
+
+
 def verdict(findings):
     present = {f["severity"] for f in findings}
     if "CRITICAL" in present:
@@ -73,7 +103,9 @@ def verdict(findings):
 
 
 def to_markdown(rec, prev):
-    titles = {f["id"]: f["title"] for f in (prev or {}).get("findings", [])}
+    prev_findings = (prev or {}).get("findings", [])
+    titles = {f.get("key") or f["id"]: f["title"] for f in prev_findings}
+    prev_ids = {f.get("key") or f["id"]: f["id"] for f in prev_findings}
     out = [
         f"# {rec['slug']} review — r{rec['n']}",
         f"Reviewed: {rec['head'][:12]} ({rec['tree']}) against {rec['base_ref']} "
@@ -88,12 +120,13 @@ def to_markdown(rec, prev):
         if rows:
             out.extend(["", f"## {title}", *rows])
 
-    section("Prior findings", [f"- {p['fate']} — {p['id']} {titles.get(p['id'], '')} — {p.get('note', '')}"
-                               for p in rec["prior"]])
-    section("Fix together", [f"- {', '.join(g['ids'])} — {g.get('note', '')}" for g in rec["fix_together"]])
+    section("Prior findings", [f"- {p['fate']} — {ref(prev_ids.get(p['key'], p['key']), prev and prev['n'])} "
+                               f"{titles.get(p['key'], '')} — {p.get('note', '')}" for p in rec["prior"]])
+    section("Fix together", [f"- {', '.join(ref(i) for i in g['ids'])} — {g.get('note', '')}"
+                             for g in rec["fix_together"]])
     rows = []
     for f in rec["findings"]:
-        rows += ["", f"### {f['id']} · {f['severity']} · {f['title']}",
+        rows += ["", f"### {ref(f['id'])} · {f['severity']} · {f['title']}",
                  f"{f['file']}:{f['line']} · found by: {', '.join(f.get('raised_by', []))}"]
         if f.get("summary"):
             rows += ["", f["summary"]]
@@ -102,14 +135,15 @@ def to_markdown(rec, prev):
             rows.append(f"- Code: {code_span(f['evidence'])}")
         if f.get("repro"):
             rows.append(f"- Repro: {f['repro']}")
-        rows += [f"- Verified: {VERIFIED.get(f['verdict'], f['verdict'])} — {f.get('verified', '')}",
-                 f"- Verdict: {f['tag']} — {f.get('how', '')}"]
+        rows.append(f"- Verified: {VERIFIED.get(f['verdict'], f['verdict'])} — {f.get('verified', '')}")
+        rows += disputed_rows(f.get("disputed"))
+        rows.append(f"- Verdict: {f['tag']} — {f.get('how', '')}")
     section("Findings", rows)
-    section("Open questions", [f"- {q['id']} · {q['file']}:{q['line']} — {q['title']}"
+    section("Open questions", [f"- {ref(q['id'])} · {q['file']}:{q['line']} — {q['title']}"
                                + (f" (settled by: {q['needs']})" if q.get("needs") else "") for q in rec["questions"]])
-    section("Refuted", [f"- {r['id']} · {r['file']}:{r['line']} — {r['title']} — {r['reason']}" for r in rec["refuted"]])
-    section("Nits", [f"- {n['id']} · {n['file']}:{n['line']} — {n['text']} ({n.get('agent', '')})" for n in rec["nits"]])
-    section("Pre-existing", [f"- {p['id']} · {p['file']}:{p['line']} — {p['text']}" for p in rec["pre_existing"]])
+    section("Refuted", [f"- {ref(r['id'])} · {r['file']}:{r['line']} — {r['title']} — {r['reason']}" for r in rec["refuted"]])
+    section("Nits", [f"- {ref(n['id'])} · {n['file']}:{n['line']} — {n['text']} ({n.get('agent', '')})" for n in rec["nits"]])
+    section("Pre-existing", [f"- {ref(p['id'])} · {p['file']}:{p['line']} — {p['text']}" for p in rec["pre_existing"]])
     if rec["checked_clear"]:
         out.extend(["", f"Checked and clear: {len(rec['checked_clear'])} items, listed in r{rec['n']}.json"])
     return "\n".join(out) + "\n"
@@ -124,6 +158,8 @@ def cmd_prev(args):
         print(1)
         return
     latest = json.loads(found[-1].read_text())
+    for f in latest["findings"]:
+        f["key"] = f.get("key") or f["id"]
     (run / "prev.json").write_text(json.dumps(latest["findings"], indent=1))
     print(latest["n"] + 1)
 
@@ -160,9 +196,7 @@ def cmd_save(args):
     }
     for key in ("prior", "fix_together", "questions", "refuted", "nits", "pre_existing", "checked_clear"):
         rec[key] = new.get(key, [])
-    for key, prefix in LIST_IDS.items():
-        for i, item in enumerate(rec[key], 1):
-            item["id"] = f"{prefix}{i}"
+    number(rec)
     if "batch" in new:
         rec["batch"] = new["batch"]
     hist.mkdir(parents=True, exist_ok=True)
