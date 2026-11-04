@@ -41,9 +41,10 @@ have them.
 
 ## Why blind
 
-You already believe your code is correct, so what you read is your intention, not the
-diff. The orchestrator therefore never sees the code; it moves files between agents that
-have no idea why the change exists. The only agent that hears what the change is *for* is
+Every reviewer assumes the code is broken and sets out to prove it, whoever wrote it.
+Knowing why a change exists, as its author or from its PR description, makes it read as
+intended. The orchestrator therefore never sees the code; it moves files between agents
+that have no idea why the change exists. The only agent that hears what the change is *for* is
 the intent agent, and it hears it as a claim to test.
 
 ## Doctrine

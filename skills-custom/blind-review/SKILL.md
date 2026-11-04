@@ -32,17 +32,20 @@ this file is the contract.
 | `reference/page.html` | The review page template |
 | `reference/doctrine-lakefs.md` | Treeverse/lakeFS doctrine handed to agents (Go, layering, cross-repo, Enterprise) |
 
+## Stance
+
+Every reviewer assumes the code is broken and sets out to prove it, on your own branch and
+on anyone's PR. Nothing in this skill treats the code as correct until shown otherwise.
+
 ## Why the orchestrator is blind
 
-You already believe this code is correct, and so does any agent that helped write it.
-What you read is your intention, not the diff. You cannot fix that by trying harder, so
-the design removes you from the loop: agents with fresh context read the diff; you only
-move files between them. If you read the code you form opinions, and those opinions become
-the filter at merge time, silently deleting work the agents did correctly.
-
-This holds in PR mode too. Reviewing a colleague's PR you have no authorial bias, but you
-do have the PR description, which is the author's bias handed to you. Stay blind; it costs
-nothing.
+Knowing why a change exists makes it read as intended. On your own branch that knowledge
+is having written it; on someone else's PR it is the description, the issue and the
+author's framing. Either way you would read the intent, not the diff. You cannot fix that
+by trying harder, so the design removes you from the loop: agents with fresh context read
+the diff; you only move files between them. If you read the code you form opinions, and
+those opinions become the filter at merge time, silently deleting work the agents did
+correctly.
 
 ## Hard rules
 
@@ -184,8 +187,9 @@ Offer, do not do:
 
 ## Rationalizations
 
-The agents are not biased; they never saw your intent. You are, and you become biased
-again the moment the findings arrive and you start defending the code.
+The agents never saw why the change exists. You did, as its author or from its
+description, and it shows the moment the findings arrive and you start explaining the
+code away.
 
 | You'll think | Reality |
 |---|---|
