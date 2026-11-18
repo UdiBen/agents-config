@@ -147,6 +147,24 @@
       "pluginName": "mattpocock-skills",
       "installedAt": "2026-10-14T06:42:25.576Z",
       "updatedAt": "2026-10-14T06:42:25.576Z"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/vercel-labs/agent-skills.git",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "skillFolderHash": "3116f3e62dbd02b44a598b1aa690d2a8938e8f89",
+      "installedAt": "2026-10-25T12:35:38.959Z",
+      "updatedAt": "2026-10-25T12:35:38.959Z"
+    },
+    "nano-banana-pro": {
+      "source": "intellectronica/agent-skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/intellectronica/agent-skills.git",
+      "skillPath": "skills/nano-banana-pro/SKILL.md",
+      "skillFolderHash": "eea680c3ebf9b8ae10ed99ea457f27af2bc05b19",
+      "installedAt": "2026-11-12T09:23:37.516Z",
+      "updatedAt": "2026-11-12T09:23:37.516Z"
     }
   },
   "dismissed": {

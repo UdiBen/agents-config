@@ -24,14 +24,11 @@ sidebar has a copy-prompt button) — this command just automates it and runs th
 - Pick the reviewer from `$ARGUMENTS`: if it ends with `deep` or `blind`, use the `blind-review`
   skill; otherwise invoke the `code-review` skill (the default, faster, effort-tiered). Either
   way the target is the same PR/branch/range.
-- With `blind-review`, the findings are its latest saved round,
-  `.git/blind-review/<branch>/r<N>.json` in the repo's git common dir. Reuse that round if its
-  `head` is the target's current head; otherwise run `blind-review` first. Post its `findings`,
-  and its open `questions` as notes. Each finding's body is its `r<N>.md` block: `#<id>`,
-  severity and `tag` on the first line with the title, then `summary`, `evidence` as a code
-  span, `repro`, `Verified:`, a `Disputed:` for/against pair when present, `Verdict:`, and
-  who found it. Nothing from `fields`.
-  They are already verified, so skip the verification step below for them.
+- With `blind-review`, run it with difftool as its destination and stop here: it finds or
+  creates the review and posts the comments itself. If its latest saved round
+  (`.git/blind-review/<branch>/r<N>.json`) already has the target's current head, deliver
+  that round to difftool instead of reviewing again. The rest of this command is the
+  `code-review` path.
 - Verify every candidate against the real source before keeping it — refute anything you
   can't confirm from the code.
 - Findings that depend on code OUTSIDE the diff (error mappings, janitors, callers) are valid

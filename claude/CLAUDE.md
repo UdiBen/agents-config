@@ -24,6 +24,11 @@
 * Never commit spec/design/plan files unless I explicitly tell you to commit them.
 * Verify root cause before proposing fixes — e.g., check branch distribution and commit context before labeling a test "flaky," and trace actual code paths before pushing back on simpler alternatives.
 
+## Superpowers
+* Superpowers skills are optional. Use one when it clearly fits the task, not on a "1% chance".
+* My "Before Implementing" rule replaces the superpowers brainstorming and writing-plans gates.
+* Implementer and reviewer subagents run on Opus, not a cheaper model.
+
 ## Stacked PR Workflow
 * When working with stacked PRs (per-PR worktrees typically under `~/code/worktrees`):
   - After any change to a base PR, cascade-rebase all downstream branches and verify builds before pushing.
@@ -89,15 +94,11 @@ Scripts are organized into category subdirectories, all in PATH:
 - **AWS login requires eval**: `eval "$(aws.login)"` or use the `aws.login` shell function in .zshrc
 - **Typical dev workflow**: `aws.login` → `kube.connect` → `restish.prepare` → `restish admin/giam ...`
 - **MFA alias**: `mfa` is aliased to `generate.mfa.token`
-# graphify
-- **graphify** (`~/.claude/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
-When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
-
 ## graphify in lakeFS-Enterprise
 When the CWD is `~/code/treeverse/lakeFS-Enterprise` and I ask a natural-language question
-about the codebase (how something works, what calls what, where a flow lives), query a graph
-FIRST — do not start with a grep/read sweep, and do not rebuild or run detect. Treat the
-result as a starting map, then read the cited files to confirm.
+about the codebase (how something works, what calls what, where a flow lives), start with a
+graph query rather than a grep/read sweep; it finds the relevant files faster. Don't rebuild
+or run detect. Treat the result as a starting map, then read the cited files to confirm.
 
 Pick the graph by domain. Domain graphs live under `~/.graphify/lakefs-ee/<slice>/graphify-out/`
 and include tests (so "what tests exercise X" works there); query with
@@ -106,7 +107,7 @@ and include tests (so "what tests exercise X" works there); query with
 - `auth` — auth, authentication, permissions, license
 - `iceberg` — icebergcatalog, icebergsync
 - `everest`, `mirroring`, `webui`, `lakectl`
-- `services` — arktika, metadatasearch, mdsquery, sparklessgc, repoman, lakefsapi, metadata, stats
+- `services` — arktika, metadatasearch, iqs, mdsquery, sparklessgc, repoman, lakefsapi, lakefscache, metadata
 Fall back to the root graph (`graphify query "<q>"`, reads `graphify-out/graph.json`) only for
 cross-domain questions; it excludes tests, mocks, and generated code. Prefer `--dfs` or
 `graphify explain "<Symbol>"` for "how does X work" questions — BFS fans out.

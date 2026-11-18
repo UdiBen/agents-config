@@ -1,6 +1,6 @@
 ---
 name: difftool-review
-description: Use when a difftool review is open, or the user asks to review a diff or PR, act on review feedback, triage or add inline comments, or collaborate through the `difftool review` CLI.
+description: Use when a difftool review is open, or the user asks to act on review feedback in it, triage or add inline comments, or collaborate through the `difftool review` CLI.
 ---
 
 # difftool review
