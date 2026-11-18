@@ -49,15 +49,10 @@ Use `gh pr create` with:
 - A concise description (follow PR Description conventions in CLAUDE.md)
 - Labels: `minor-change`, `exclude-changelog`, `mostly-ai`
 
-Example:
+Write the body to a file first, then:
 ```
-gh pr create --title "the pr title" --body "$(cat <<'EOF'
-## Summary
-<1-3 bullet points>
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-EOF
-)" --label "minor-change" --label "exclude-changelog" --label "mostly-ai"
+gh pr create --title "the pr title" --body-file <body-file> \
+  --label "minor-change" --label "exclude-changelog" --label "mostly-ai"
 ```
 
 ## Step 8: Cleanup

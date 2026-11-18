@@ -256,20 +256,11 @@ Gather context first:
 
 ### Create with gh
 
+Write the body to a file in the template's structure (without a template:
+what changed, why, how it was tested), then:
+
 ```bash
-gh pr create --title "feat(auth): add login rate limiting" --body "$(cat <<'EOF'
-## Summary
-Add rate limiting to the login endpoint to blunt brute-force attempts.
-
-## Changes
-Adds sliding-window rate limiting to /auth/login, backed by Redis, with
-RATE_LIMIT_* configuration variables.
-
-## Testing
-Unit tests cover the window logic. Integration tests confirm the endpoint
-returns 429 once the limit is hit.
-EOF
-)"
+gh pr create --title "Limit repeated login attempts" --body-file <body-file>
 ```
 
 ### Labels, assignees, reviewers
